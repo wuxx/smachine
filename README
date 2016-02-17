@@ -1,0 +1,57 @@
+simple 32-bit risc cpu
+
+include simulator, assemable tool
+
+the cpu have only 5 registers: r0 r1 r2(sp) r3(pc) flags
+
+r0, r1 : general purpose registers
+r2(sp) : the stack pointer register
+r3(pc) : the program counter register
+flag   : cpu status register include (negative zero overflow)
+
+it's a arm-like cpu, base on load store architecture, 
+but I didn't design the lr register, function call is totally base on the stack
+
+here is the stack frame
+===========
+argx
+...
+arg2
+arg1
+return address <- r1 (as frame pointer)
+local vars
+===========
+
+#instructions 
+
+I. address mode
+    1. imm
+        mov r0, #0x1234     (use text pool or cut the 0x12345678 into 0x1234 and 0x5678)
+    
+    2. register direct
+        mov r0, r1
+    
+    3. register indirect
+        ldr r0, [r1]    (load r0 from memory [r1])
+        str r0, [r1]    (store r0 to memory [r1])
+
+II. stack operation
+    1. push r0
+    2. pop r0
+
+III. function call
+    1. call #0x12345678
+    2. ret
+
+IV. arithmetic operation 
+    1. add r0,r0,r1     (r0=r0+r1)
+    2. add r0,r0,#0x123456780 (r0=r0+0x12345678)
+    3. div r0,r0,r1     (r0=r0/r1)
+    4. div r0,r0,#0x123456780 (r0=r0/0x12345678)
+    5.  sub mul and or xor are the same format
+
+V. jmp operation
+    1. jmpn jmpnn
+    2. jmpz jmpnz
+    3. jmpo jmpno
+
