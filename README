@@ -70,8 +70,8 @@ V. jmp operation
 
 
 #instruction format
-[31 30 | 28 27]  [26 25 | 24 23]  [22 21 | 20 19]  [18 17 16] [15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0]
- am      op-dst   am      op-src1  am      op-src2  op-type    sub-type
-         r0-r3            r0-r3            r0-r3    I - V      mov, ldr, str, push, pop, call, ret, add, div, sub, mul, and, or, xor, jmp[n][nzo]
+[31 30 | 29 28]  [27 26 | 25 24]  [23 22 | 21 20]  [19 18 17 16] [15 14 13 12 11 10 9 8] [7 6 5 4 3 2 1 0]
+ am      op-dst   am      op-src1  am      op-src2  reserved      op-type                 sub-type
+         r0-r3            r0-r3            r0-r3                  I - V                   mov, ldr, str, push, pop, call, ret, add, div, sub, mul, and, or, xor, jmp[n][nzo]
 
  am: addressing mode, include imm, register direct, register indirect.
