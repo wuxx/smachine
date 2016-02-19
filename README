@@ -1,13 +1,25 @@
 simple 32-bit risc cpu
 
-include simulator, assemable tool
+include the simulator, assembler
+cpu state machine: 
+while (1) {
+    instruction fetch;
+    instruction decode;
+    instruction execute;
+    pc = pc + 4 or pc = pc + 8
+}
+
+vector table:
+0x0     Reset_Handler
+        Irq_Handler
+        Exc_Handler
 
 the cpu have only 5 registers: r0 r1 r2(sp) r3(pc) flags
 
 r0, r1 : general purpose registers
 r2(sp) : the stack pointer register
 r3(pc) : the program counter register
-flag   : cpu status register include (negative zero overflow)
+flags  : cpu status register include (negative zero overflow)
 
 it's a arm-like cpu, base on load store architecture, 
 but I didn't design the lr register, function call is totally base on the stack
@@ -18,15 +30,15 @@ argx
 ...
 arg2
 arg1
-return address <- r1 (as frame pointer)
+return address <- r1 (as the frame pointer)
 local vars
 ===========
 
 #instruction type
 
-I. addresssing
+I. data transfer operation & addressing mode
     1. imm
-        mov r0, #0x1234     (use text pool or cut the 0x12345678 into 0x1234 and 0x5678)
+        ldr r0, #0x12345678     (0x12345678 is store at pc+4)
     
     2. register direct
         mov r0, r1
@@ -46,7 +58,7 @@ III. function call
 IV. arithmetic operation 
     1. add r0,r0,r1     (r0=r0+r1)
     2. add r0,r0,#0x123456780 (r0=r0+0x12345678)
-    3. div r0,r0,r1     (r0=r0/r1)
+    3. div r0,r0,r1     (r0=r0/r1, r1=r0%r1)
     4. div r0,r0,#0x123456780 (r0=r0/0x12345678)
     5.  sub mul and or xor are the same format
 
@@ -56,8 +68,10 @@ V. jmp operation
     3. jmpz jmpnz
     4. jmpo jmpno
 
-#instruction design
-[31 30 29] [28 27] [26 25] [24 23] [22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0]
- op-type   op-dst  op-src1 op-src2 sub-type
- I - V     r0-r3   r0-r3   r0-r3   mov, ldr, str, push, pop, call, ret, add, div, sub, mul, and, or, xor, jmp[n][nzo]
 
+#instruction format
+[31 30 | 28 27]  [26 25 | 24 23]  [22 21 | 20 19]  [18 17 16] [15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0]
+ am      op-dst   am      op-src1  am      op-src2  op-type    sub-type
+         r0-r3            r0-r3            r0-r3    I - V      mov, ldr, str, push, pop, call, ret, add, div, sub, mul, and, or, xor, jmp[n][nzo]
+
+ am: addressing mode, include imm, register direct, register indirect.
