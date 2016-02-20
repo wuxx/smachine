@@ -6,17 +6,29 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define error() do { \
+                    printf("error: [%s][%d]\n", __func__, __LINE__);  \
+                    exit(-1); \
+                } while(0)
+
+#define inst_illegal(pinst)  do { \
+                                    printf("[%s][%d] illegal instruction [%x]\n", __func__, __LINE__, *((u32*)pinst));  \
+                                    exit(-1); \
+                                } while(0)
+
+
 #define MEM_SIZE (10*1024)
-#define error() do {printf("error: [%s][%d]\n", __func__, __LINE__); exit(-1);} while(0)
-#define inst_illegal(pinst)  do {printf("[%s][%d] illegal instruction [%x]\n", __func__, __LINE__, *((u32*)pinst)); exit(-1);} while(0)
+
+#define get_bit(x, bit_index) ((x >> bit_index) & 0x1)
 
 #define R(i)  (cpu.r[i])
 
-#define R0 (cpu.r[0])
-#define R1 (cpu.r[1])
-#define SP (cpu.r[2])
-#define PC (cpu.r[3])
+#define R0 cpu.r[0]
+#define R1 cpu.r[1]
+#define SP cpu.r[2]
+#define PC cpu.r[3]
 #define FLAG (cpu.flag)
+#define RINDEX(rx) ((&rx - &cpu.r[0]) / 4)
 
 typedef  unsigned char u8;
 typedef  signed   char s8;
@@ -24,12 +36,19 @@ typedef  unsigned int  u32;
 typedef  signed   int  s32;
 
 u32 cpu_read_mem(u32 addr);
+void cpu_write_mem(u32 addr, u32 data);
 
 enum ADDRESS_MODE_E {
-    IMM          = 0,
-    REG_DIRECT   = 1,
-    REG_INDIRECT = 2,
+    AM_IMM          = 0,
+    AM_REG_DIRECT   = 1,
+    AM_REG_INDIRECT = 2,
     AM_MAX,
+};
+
+enum FLAG_E {
+    FG_NEG  = 0,
+    FG_ZERO = 1,
+    FG_OVFW = 2,
 };
 
 enum OP_TYPE_E {
@@ -121,19 +140,19 @@ void op_mov(struct __instruction__ *pinst)
     assert(pinst->src2 == 0);
     assert(pinst->am_src2 == 0);
 
-    assert(pinst->am_dst == REG_DIRECT);
+    assert(pinst->am_dst == AM_REG_DIRECT);
 
     switch (pinst->am_src1) {
-        case (IMM):
+        case (AM_IMM):
             imm = cpu_read_mem(PC + 4);
             R(pinst->dst) = imm;
             PC = PC + 8;
             break;
-        case (REG_DIRECT):
+        case (AM_REG_DIRECT):
             R(pinst->dst) = R(pinst->src1);
             PC = PC + 4;
             break;
-        case (REG_INDIRECT):
+        case (AM_REG_INDIRECT):
             inst_illegal(pinst);
             break;
         default:
@@ -148,173 +167,436 @@ format:
 */
 void op_ldr(struct __instruction__ *pinst)
 {
+    u32 data;
+    assert(pinst->src2 == 0);
+    assert(pinst->am_src2 == 0);
+
+    assert(pinst->am_dst == AM_REG_DIRECT);
+
+    switch (pinst->am_src1) {
+        case (AM_REG_INDIRECT):
+            data = cpu_read_mem(R(pinst->src1));
+            R(pinst->dst) = data;
+            PC = PC + 4;
+            break;
+        default:
+            inst_illegal(pinst);
+            break;
+    }
+
+    PC = PC + 4;
 }
 
 /*
 format:
-    str ri, [rj]
+    str ri, [rj] (rj is op_dst, ri is op_src1)
 */
 void op_str(struct __instruction__ *pinst)
 {
+    u32 addr, data;
+    assert(pinst->src2 == 0);
+    assert(pinst->am_src2 == 0);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+    assert(pinst->am_dst  == AM_REG_INDIRECT);
+
+    addr = R(pinst->dst);
+    data = R(pinst->src1);
+
+    cpu_write_mem(addr, data);
+
+    PC = PC + 4;
 }
 
 /*
 format:
     push ri
+equal:
+    str ri, [sp]
+    sp = sp - 4
 */
 void op_push(struct __instruction__ *pinst)
 {
+    u32 addr, data;
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2 == 0);
+    assert(pinst->am_src2 == 0);
+
+    assert(pinst->dst == RINDEX(SP));
+    assert(pinst->am_dst == AM_REG_INDIRECT);
+
+    addr = SP;
+    data = R(pinst->src1);
+
+    cpu_write_mem(addr, data);
+    SP = SP - 4;
+    PC = PC + 4;
+
 }
 
 /*
 format:
     pop ri
+equal:
+    ldr ri, [sp]
+    sp = sp + 4;
 */
 void op_pop(struct __instruction__ *pinst)
 {
+    u32 addr, data;
+
+    assert(pinst->am_dst == AM_REG_DIRECT);
+
+    assert(pinst->src1 == RINDEX(SP));
+    assert(pinst->am_src1 == AM_REG_INDIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+    addr = SP;
+    data = R(pinst->src1);
+
+    cpu_write_mem(addr, data);
+    SP = SP + 4;
+    PC = PC + 4;
+
 }
 
 /*
 format:
     call ri
-    call #imm
+equal:
+    mov pc, ri
+
+    call #imm   TODO
+equal:
+    mov pc #imm
 */
 void op_call(struct __instruction__ *pinst)
 {
+    u32 addr, data;
+
+    assert(pinst->dst == RINDEX(PC));
+    assert(pinst->am_dst == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+    PC = R(pinst->src1);
+
+    SP = SP + 4;
+    PC = PC + 4;
+
 }
 
 /*
 format:
     ret
+equal:
+    ldr pc, [sp]
+    sp = sp + 4;
 */
 void op_ret(struct __instruction__ *pinst)
 {
+    u32 addr, data;
+
+    assert(pinst->dst == RINDEX(PC));
+    assert(pinst->am_dst == AM_REG_DIRECT);
+
+    assert(pinst->src1 == RINDEX(SP));
+    assert(pinst->am_src1 == AM_REG_INDIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+    PC = cpu_read_mem(SP);
+    SP = SP + 4;
 }
 
-/*
+/*  FIXME: update the flag
 format:
     add ri, rj, rk
-    add ri, rj, #imm
+
+    add ri, rj, #imm TODO
 */
 void op_add(struct __instruction__ *pinst)
 {
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->am_src2 == AM_REG_DIRECT);
+
+    R(pinst->dst) = R(pinst->src1) + R(pinst->src2);
+    PC = PC + 4;
 }
 
 /*
 format:
     sub ri, rj, rk
-    sub ri, rj, #imm
+    sub ri, rj, #imm TODO
 */
 void op_sub(struct __instruction__ *pinst)
 {
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->am_src2 == AM_REG_DIRECT);
+
+    R(pinst->dst) = R(pinst->src1) - R(pinst->src2);
+    PC = PC + 4;
 }
 
 /*
 format:
     mul ri, rj, rk
-    mul ri, rj, #imm
+    mul ri, rj, #imm TODO
 */
 void op_mul(struct __instruction__ *pinst)
 {
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->am_src2 == AM_REG_DIRECT);
+
+    R(pinst->dst) = R(pinst->src1) * R(pinst->src2);
+    PC = PC + 4;
 }
 
 /*
 format:
     div ri, rj, rk
-    div ri, rj, #imm
+    div ri, rj, #imm TODO
 */
 void op_div(struct __instruction__ *pinst)
 {
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->am_src2 == AM_REG_DIRECT);
+
+    R(pinst->dst)  = R(pinst->src1) / R(pinst->src2);
+    R(pinst->src1) = R(pinst->src1) % R(pinst->src2);
+    PC = PC + 4;
 }
 
 /*
 format:
     and ri, rj, rk
-    and ri, rj, #imm
+    and ri, rj, #imm TODO
 */
 void op_and(struct __instruction__ *pinst)
 {
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->am_src2 == AM_REG_DIRECT);
+
+    R(pinst->dst)  = R(pinst->src1) & R(pinst->src2);
+    PC = PC + 4;
 }
 
 /*
 format:
     or ri, rj, rk
-    or ri, rj, #imm
+    or ri, rj, #imm TODO
 */
 void op_or(struct __instruction__ *pinst)
 {
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->am_src2 == AM_REG_DIRECT);
+
+    R(pinst->dst)  = R(pinst->src1) | R(pinst->src2);
+    PC = PC + 4;
 }
 
 /*
 format:
     xor ri, rj, rk
-    xor ri, rj, #imm
+    xor ri, rj, #imm TODO
 */
 void op_xor(struct __instruction__ *pinst)
 {
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->am_src2 == AM_REG_DIRECT);
+
+    R(pinst->dst)  = R(pinst->src1) ^ R(pinst->src2);
+    PC = PC + 4;
 }
 
 /*
 format:
     jmp ri
-    jmp #imm
+equal:
+    mov pc, ri
+    jmp #imm TODO
 */
 void op_jmp(struct __instruction__ *pinst)
 {
+    assert(pinst->dst     == RINDEX(PC));
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+    PC = R(pinst->src1);
 }
 
 /*
 format:
     jmpn ri
-    jmpn #imm
+equal:
+    if (neg) {
+        mov pc, ri
+    }
+    jmpn #imm TODO
 */
 void op_jmpn(struct __instruction__ *pinst)
 {
+    assert(pinst->dst     == RINDEX(PC));
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+
+    if (get_bit(FLAG, FG_NEG)) {
+        PC = R(pinst->src1);
+    } else {
+        PC = PC + 4;
+    }
 }
 
 /*
 format:
     jmpz ri
-    jmpz #imm
+    jmpz #imm TODO
 */
 void op_jmpz(struct __instruction__ *pinst)
 {
+    assert(pinst->dst     == RINDEX(PC));
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+
+    if (get_bit(FLAG, FG_ZERO)) {
+        PC = R(pinst->src1);
+    } else {
+        PC = PC + 4;
+    }
 }
 
 /*
 format:
     jmpo ri
-    jmpo #imm
+    jmpo #imm TODO
 */
 void op_jmpo(struct __instruction__ *pinst)
 {
+    assert(pinst->dst     == RINDEX(PC));
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+
+    if (get_bit(FLAG, FG_OVFW)) {
+        PC = R(pinst->src1);
+    } else {
+        PC = PC + 4;
+    }
 }
 
 /*
 format:
     jmpnn ri
-    jmpnn #imm
+    jmpnn #imm TODO
 */
 void op_jmpnn(struct __instruction__ *pinst)
 {
+    assert(pinst->dst     == RINDEX(PC));
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+
+    if (!get_bit(FLAG, FG_NEG)) {
+        PC = R(pinst->src1);
+    } else {
+        PC = PC + 4;
+    }
 }
 
 /*
 format:
     jmpnz ri
-    jmpnz #imm
+    jmpnz #imm TODO
 */
 void op_jmpnz(struct __instruction__ *pinst)
 {
+    assert(pinst->dst     == RINDEX(PC));
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+
+    if (!get_bit(FLAG, FG_ZERO)) {
+        PC = R(pinst->src1);
+    } else {
+        PC = PC + 4;
+    }
 }
 
 /*
 format:
     jmpno ri
-    jmpno #imm
+    jmpno #imm TODO
 */
 void op_jmpno(struct __instruction__ *pinst)
 {
+    assert(pinst->dst     == RINDEX(PC));
+    assert(pinst->am_dst  == AM_REG_DIRECT);
+
+    assert(pinst->am_src1 == AM_REG_DIRECT);
+
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+
+
+    if (!get_bit(FLAG, FG_OVFW)) {
+        PC = R(pinst->src1);
+    } else {
+        PC = PC + 4;
+    }
 }
 
 struct __instruction_set__ is[] = {
@@ -368,6 +650,15 @@ s32 is_legal(struct __instruction__ *pinst)
     return -1;
 }
 
+void cpu_write_mem(u32 addr, u32 data)
+{
+    u32 word;
+    assert((addr % 4) == 0);
+    assert(addr < MEM_SIZE);
+
+    *((u32 *)(&cpu_mem[addr])) = data;
+}
+
 u32 cpu_read_mem(u32 addr)
 {
     u32 word;
@@ -384,9 +675,11 @@ void cpu_run()
     u32 i;
     u32 word;
     struct __instruction__ *pinst;
+
     /* IF */
     word = cpu_read_mem(PC);
     pinst = (struct __instruction__ *)&word;
+
     /* ID, EX */
     assert((i = is_legal(pinst)) != -1);
     is[i].hander(pinst);
