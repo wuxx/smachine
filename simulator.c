@@ -8,27 +8,49 @@
 
 #define MEM_SIZE (10*1024)
 #define error() do {printf("error: [%s][%d]\n", __func__, __LINE__); exit(-1);} while(0)
+#define inst_illegal(pinst)  do {printf("[%s][%d] illegal instruction [%x]\n", __func__, __LINE__, *((u32*)pinst)); exit(-1);} while(0)
+
+#define R(i)  (cpu.r[i])
+
+#define R0 (cpu.r[0])
+#define R1 (cpu.r[1])
+#define SP (cpu.r[2])
+#define PC (cpu.r[3])
+#define FLAG (cpu.flag)
 
 typedef  unsigned char u8;
 typedef  signed   char s8;
 typedef  unsigned int  u32;
 typedef  signed   int  s32;
 
-typedef void (*op_handler)(u32 op);
+u32 cpu_read_mem(u32 addr);
+
+enum ADDRESS_MODE_E {
+    IMM          = 0,
+    REG_DIRECT   = 1,
+    REG_INDIRECT = 2,
+    AM_MAX,
+};
 
 enum OP_TYPE_E {
-    OP_ADDRESSING = 0,
-    OP_STACK      = 1,
-    OP_FUNC_CALL  = 2,
-    OP_ARITHMETIC = 3,
-    OP_JMP        = 4,
+    OP_DATA_TRANSFER = 0,
+    OP_STACK         = 1,
+    OP_FUNC_CALL     = 2,
+    OP_ARITHMETIC    = 3,
+    OP_JMP           = 4,
+};
+
+enum VIC_TABLE_E {
+    RESET_HANDLER = 0x0,
+    IRQ_HANDLER   = 0x4,
+    EXC_HANDLER   = 0x8,
 };
 
 enum SUB_TYPE_E {
 
-    MOV = OP_ADDRESSING << 8 |  0,
-    LDR = OP_ADDRESSING << 8 |  1,
-    STR = OP_ADDRESSING << 8 |  2,
+    MOV = OP_DATA_TRANSFER << 8 |  0,
+    LDR = OP_DATA_TRANSFER << 8 |  1,
+    STR = OP_DATA_TRANSFER << 8 |  2,
 
     PUSH = OP_STACK << 8 | 3,
     POP  = OP_STACK << 8 | 4,
@@ -54,12 +76,6 @@ enum SUB_TYPE_E {
     
 };
 
-enum ADDRESS_MODE_E {
-    IMM          = 0,
-    REG_DIRECT   = 1,
-    REG_INDIRECT = 2,
-};
-
 struct __instruction__ {
     u32 op_type:  16;
     u32 reserved:  4;
@@ -72,112 +88,232 @@ struct __instruction__ {
 };
 
 struct __cpu__ {
-    u32 r0;
-    u32 r1;
-    u32 sp;
-    u32 pc;
+    u32 r[4];
     u32 flag;
 };
 
+typedef void (*op_handler)(struct __instruction__ *inst);
+
 struct __instruction_set__ {
     char *desc;
-    u32 operation;
+    u32 op_type;
     op_handler hander;
 };
 
 struct __cpu__ cpu = 
 {
-    .r0   = 0,
-    .r1   = 0,
-    .sp   = 0,
-    .pc   = 0,
+    .r    = {0, 0, 0, 0},
     .flag = 0,
 };
 
 u8 cpu_mem[MEM_SIZE] = {0};
 int ifd = 0, cpu_cycles = 0;
 
-void op_mov(u32 op)
+
+/*
+format:
+   mov ri, rj
+   mov ri, #imm
+*/
+void op_mov(struct __instruction__ *pinst)
+{
+    u32 imm;
+    assert(pinst->src2 == 0);
+    assert(pinst->am_src2 == 0);
+
+    assert(pinst->am_dst == REG_DIRECT);
+
+    switch (pinst->am_src1) {
+        case (IMM):
+            imm = cpu_read_mem(PC + 4);
+            R(pinst->dst) = imm;
+            PC = PC + 8;
+            break;
+        case (REG_DIRECT):
+            R(pinst->dst) = R(pinst->src1);
+            PC = PC + 4;
+            break;
+        case (REG_INDIRECT):
+            inst_illegal(pinst);
+            break;
+        default:
+            inst_illegal(pinst);
+            break;
+    }
+}
+
+/*
+format:
+    ldr ri, [rj]
+*/
+void op_ldr(struct __instruction__ *pinst)
 {
 }
 
-void op_ldr(u32 op)
+/*
+format:
+    str ri, [rj]
+*/
+void op_str(struct __instruction__ *pinst)
 {
 }
 
-void op_str(u32 op)
+/*
+format:
+    push ri
+*/
+void op_push(struct __instruction__ *pinst)
 {
 }
 
-void op_push(u32 op)
+/*
+format:
+    pop ri
+*/
+void op_pop(struct __instruction__ *pinst)
 {
 }
 
-void op_pop(u32 op)
+/*
+format:
+    call ri
+    call #imm
+*/
+void op_call(struct __instruction__ *pinst)
 {
 }
 
-void op_call(u32 op)
+/*
+format:
+    ret
+*/
+void op_ret(struct __instruction__ *pinst)
 {
 }
 
-void op_ret(u32 op)
+/*
+format:
+    add ri, rj, rk
+    add ri, rj, #imm
+*/
+void op_add(struct __instruction__ *pinst)
 {
 }
 
-void op_add(u32 op)
+/*
+format:
+    sub ri, rj, rk
+    sub ri, rj, #imm
+*/
+void op_sub(struct __instruction__ *pinst)
 {
 }
 
-void op_sub(u32 op)
+/*
+format:
+    mul ri, rj, rk
+    mul ri, rj, #imm
+*/
+void op_mul(struct __instruction__ *pinst)
 {
 }
 
-void op_mul(u32 op)
+/*
+format:
+    div ri, rj, rk
+    div ri, rj, #imm
+*/
+void op_div(struct __instruction__ *pinst)
 {
 }
 
-void op_div(u32 op)
+/*
+format:
+    and ri, rj, rk
+    and ri, rj, #imm
+*/
+void op_and(struct __instruction__ *pinst)
 {
 }
 
-void op_and(u32 op)
+/*
+format:
+    or ri, rj, rk
+    or ri, rj, #imm
+*/
+void op_or(struct __instruction__ *pinst)
 {
 }
 
-void op_or(u32 op)
+/*
+format:
+    xor ri, rj, rk
+    xor ri, rj, #imm
+*/
+void op_xor(struct __instruction__ *pinst)
 {
 }
 
-void op_xor(u32 op)
+/*
+format:
+    jmp ri
+    jmp #imm
+*/
+void op_jmp(struct __instruction__ *pinst)
 {
 }
 
-void op_jmp(u32 op)
+/*
+format:
+    jmpn ri
+    jmpn #imm
+*/
+void op_jmpn(struct __instruction__ *pinst)
 {
 }
 
-void op_jmpn(u32 op)
+/*
+format:
+    jmpz ri
+    jmpz #imm
+*/
+void op_jmpz(struct __instruction__ *pinst)
 {
 }
 
-void op_jmpz(u32 op)
+/*
+format:
+    jmpo ri
+    jmpo #imm
+*/
+void op_jmpo(struct __instruction__ *pinst)
 {
 }
 
-void op_jmpo(u32 op)
+/*
+format:
+    jmpnn ri
+    jmpnn #imm
+*/
+void op_jmpnn(struct __instruction__ *pinst)
 {
 }
 
-void op_jmpnn(u32 op)
+/*
+format:
+    jmpnz ri
+    jmpnz #imm
+*/
+void op_jmpnz(struct __instruction__ *pinst)
 {
 }
 
-void op_jmpnz(u32 op)
-{
-}
-
-void op_jmpno(u32 op)
+/*
+format:
+    jmpno ri
+    jmpno #imm
+*/
+void op_jmpno(struct __instruction__ *pinst)
 {
 }
 
@@ -209,33 +345,51 @@ struct __instruction_set__ is[] = {
     {"jmpno", JMPNO, op_jmpno},
 };
 
-s32 is_legal(u32 op)
+/* basic sanity check */
+s32 is_legal(struct __instruction__ *pinst)
 {
     u32 i;
+
+    if (pinst->reserved != 0) {
+        return -1;
+    }
+
+    if ( pinst->am_dst  >= AM_MAX
+        || pinst->am_src1 >= AM_MAX
+        || pinst->am_src2 >= AM_MAX) {
+        return -1;
+    }
+
     for(i=0;i<sizeof(is)/sizeof(is[0]);i++) {
-        if ((op & 0xFFFF) == is[i].operation) {
-            return 1;
+        if ((pinst->op_type) == is[i].op_type) {
+            return i;
         }
     }
-    return 0;
+    return -1;
 }
 
 u32 cpu_read_mem(u32 addr)
 {
-    u32 *word;
+    u32 word;
     assert((addr % 4) == 0);
     assert(addr < MEM_SIZE);
-    word = (u32 *)(&cpu_mem[addr]);
+    word = *((u32 *)(&cpu_mem[addr]));
 
-
-    return *word;
+    return word;
 }
 
 /* run 1 cycle, we always treat that 1 instruction consume 1 cycle */
 void cpu_run()
 {
-    u32 count;
-    s32 op;
+    u32 i;
+    u32 word;
+    struct __instruction__ *pinst;
+    /* IF */
+    word = cpu_read_mem(PC);
+    pinst = (struct __instruction__ *)&word;
+    /* ID, EX */
+    assert((i = is_legal(pinst)) != -1);
+    is[i].hander(pinst);
 }
 
 /* simutor my cpu */
@@ -266,6 +420,7 @@ int main(int argc, char **argv)
 
     assert(st.st_size < MEM_SIZE);
 
+    PC = cpu_read_mem(RESET_HANDLER);
     while (1) {
         cpu_run();
         cpu_cycles++;

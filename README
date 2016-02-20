@@ -6,13 +6,13 @@ while (1) {
     instruction fetch;
     instruction decode;
     instruction execute;
-    pc = pc + 4 or pc = pc + 8
+    pc = pc + 4 (if not imm addressing, no jmp)
 }
 
 vector table:
 0x0     Reset_Handler
-        Irq_Handler
-        Exc_Handler
+0x4     Irq_Handler
+0x8     Exc_Handler
 
 the cpu have only 5 registers: r0 r1 r2(sp) r3(pc) flags
 
