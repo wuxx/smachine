@@ -39,6 +39,10 @@ char *keyword[] = { "NULL",
                     "add",  "sub",  "div",  "mul",  "and",   "or",    "xor",
                     "jmp",  "jmpn", "jmpz", "jmpo", "jmpnn", "jmpnz", "jmpno",
                     "LOCATE",
+                    "r0",   "r1",   "r2",   "r3",
+                    "sp", /* alias of r2 */
+                    "pc", /* alias of r3 */
+                    "LOCATE", /* locate the mem of instruction */
                     };
 
 s32 is_letter(char c)
@@ -81,18 +85,26 @@ s32 is_keyword(char *s, u32 len)
 
 u32 tindex = 0;
 struct __token__ token_pool[POOL_SIZE];
+s32 put_token(u32 t, u32 v)
+{
+    token_pool[tindex].type  = t;
+    token_pool[tindex].value = v;
+    tindex++;
+    assert(tindex < POOL_SIZE);
+}
 
 s32 parse_line(char *line)
 {
     u32 i = 0, j;
+    u32 radix, num;
     u32 start, end, len;
     char c;
     while((c = line[i]) != 0) {
         if (c == ' ') {
             i++;
-        } else if (c == ';') {    /* the comment */
+        } else if (c == ';') {      /* the comment */
             return 0;
-        } else if (is_letter(c)) {
+        } else if (is_letter(c)) {  /* keyword or id */
             start = i;
             i++;
             while (is_id(c)) {
@@ -100,19 +112,43 @@ s32 parse_line(char *line)
             }
             end = i;
             if ((j = is_keyword(&line[start], end-start))) {
-                token_pool[tindex].type    = TOKEN_KEYWORD;
-                token_pool[tindex++].value = j;
+                put_token(TOKEN_KEYWORD, j);
             } else { /* id */
             }
-        } else if (c == '#') { /* immediate num */
+
+        } else if (c == '#') {      /* immediate num */
             if (line[i+1] == '0' && line[i+2] == 'x') { /* hex FIXME: i+1 i+2 may overstep the boundary */
-            
-            } else {    /* dec */
-                c = line[++i];
-                assert(is_digit(c));
+                radix = 16;
+            } else { /* dec */
+                radix = 10;
             }
+
+            i++;
+            start = i;
+            c = line[i];
+            while(is_digit(c)) {
+                c = line[i++];
+            }
+            end = i;
+            assert(line[end] == ' ');
+            line[end] = '\0'; /* for atoi */
+            i++;    /* skip the ' ' */
+
+            num = atoi(&line[start]);
+            put_token(TOKEN_IMM, num);
+
+        } else if (c == '[') { /* register indirect */
+            /* [ r0|r1|r2|r3|sp|pc ] */
+            /* expect(']'); */
+        } else if (c == ',') {
+            put_token(TOKEN_COMMA, 0);
+        } else if (c == ':') {
+            put_token(TOKEN_COLON, 0);
+        } else if (c == '\"') {   /* string */
+            /* expect('\"'); */
         }
     }
+
 }
 
 s32 parse_token(char *ifile)
