@@ -6,16 +6,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "cpu.h"
+
 /*
    the assembler of smachine
 */
 
 #define POOL_SIZE 1024
-
-typedef unsigned char u8;
-typedef signed   char s8;
-typedef unsigned int  u32;
-typedef signed   int  s32;
 
 enum TOKEN_TYPE_E {
     TOKEN_KEYWORD = 0,
@@ -114,6 +111,7 @@ s32 parse_line(char *line)
             if ((j = is_keyword(&line[start], end-start))) {
                 put_token(TOKEN_KEYWORD, j);
             } else { /* id */
+                /* id_pool */
             }
 
         } else if (c == '#') {      /* immediate num */
@@ -138,17 +136,27 @@ s32 parse_line(char *line)
             put_token(TOKEN_IMM, num);
 
         } else if (c == '[') { /* register indirect */
-            /* [ r0|r1|r2|r3|sp|pc ] */
-            /* expect(']'); */
+            start = ++i;
+            end   = i+2;
+            /* [r0|r1|r2|r3|sp|pc] */
+            if (j = is_keyword(&line[start], end-start)) {
+                put_token(TOKEN_KEYWORD, j);
+            } else {
+                error();
+            }
+            i = i + 2;
+            if (line[i] != ']') {
+                error();
+            }
         } else if (c == ',') {
             put_token(TOKEN_COMMA, 0);
         } else if (c == ':') {
             put_token(TOKEN_COLON, 0);
         } else if (c == '\"') {   /* string */
+            /* str_pool */
             /* expect('\"'); */
         }
     }
-
 }
 
 s32 parse_token(char *ifile)
