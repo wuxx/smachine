@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <sys/types.h>
@@ -17,7 +18,6 @@
 enum TOKEN_TYPE_E {
     TOKEN_KEYWORD = 0,
     TOKEN_COMMA   = 1,  
-    TOKEN_STRING  = 2,  /* str: "hello, world" */
     TOKEN_COLON   = 3,  /* a: jmp a */
     TOKEN_ID      = 4,
     TOKEN_IMM     = 5,
@@ -27,6 +27,11 @@ enum TOKEN_TYPE_E {
 struct __token__ {
     u32 type;
     u32 value;
+};
+
+struct __id__ {
+    char *buf;
+    u32 addr;
 };
 
 char *keyword[] = { "NULL",
@@ -41,6 +46,10 @@ char *keyword[] = { "NULL",
                     "pc", /* alias of r3 */
                     "LOCATE", /* locate the mem of instruction */
                     };
+
+u32 tindex = 0, iindex = 0;
+struct __token__ token_pool[POOL_SIZE];
+struct __id__    id_pool[POOL_SIZE];
 
 s32 is_letter(char c)
 {
@@ -80,14 +89,24 @@ s32 is_keyword(char *s, u32 len)
     return 0;
 }
 
-u32 tindex = 0;
-struct __token__ token_pool[POOL_SIZE];
-s32 put_token(u32 t, u32 v)
+s32 put_token(u32 _type, u32 _value)
 {
-    token_pool[tindex].type  = t;
-    token_pool[tindex].value = v;
+    token_pool[tindex].type  = _type;
+    token_pool[tindex].value = _value;
     tindex++;
     assert(tindex < POOL_SIZE);
+}
+
+s32 put_id(char *s, u32 len)
+{
+    id_pool[iindex].buf = malloc(len+1);
+    memcpy(id_pool[iindex].buf, s, len);
+    id_pool[iindex].buf[len] = '\0';
+
+    id_pool[iindex].addr = 0;
+    iindex++;
+    assert(iindex < POOL_SIZE);
+    return iindex - 1;
 }
 
 s32 parse_line(char *line)
@@ -111,7 +130,8 @@ s32 parse_line(char *line)
             if ((j = is_keyword(&line[start], end-start))) {
                 put_token(TOKEN_KEYWORD, j);
             } else { /* id */
-                /* id_pool */
+                i = put_id(&line[start], end-start);
+                put_token(TOKEN_ID, i);
             }
 
         } else if (c == '#') {      /* immediate num */
@@ -140,7 +160,7 @@ s32 parse_line(char *line)
             end   = i+2;
             /* [r0|r1|r2|r3|sp|pc] */
             if (j = is_keyword(&line[start], end-start)) {
-                put_token(TOKEN_KEYWORD, j);
+                put_token(AM_REG_INDIRECT << 16 | TOKEN_KEYWORD, j);
             } else {
                 error();
             }
@@ -152,9 +172,8 @@ s32 parse_line(char *line)
             put_token(TOKEN_COMMA, 0);
         } else if (c == ':') {
             put_token(TOKEN_COLON, 0);
-        } else if (c == '\"') {   /* string */
-            /* str_pool */
-            /* expect('\"'); */
+        } else {
+            error();
         }
     }
 }

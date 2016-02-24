@@ -3,9 +3,13 @@ ASM=assembler
 
 #CFLAGS = -m32
 
-all: clean
+.PHONY: all tags
+all:
 	gcc $(CFLAGS) $(SIM).c -o $(SIM)
 	gcc $(CFLAGS) $(ASM).c -o $(ASM)
 
+tags:
+	ctags -R .
+
 clean:	
-	rm -f $(SIM) $(ASM)
+	rm -f $(SIM) $(ASM) tags
