@@ -9,6 +9,12 @@
 
 #include "cpu.h"
 
+#if 0
+#define DEBUG(fmt, ...)     printf(fmt, ##__VA_ARGS__)
+#else
+#define DEBUG(fmt, ...)
+#endif
+
 /*
    the assembler of smachine
 */
@@ -27,11 +33,11 @@ enum TOKEN_TYPE_E {
 char *type_desc[] = {
     "TOKEN_INVALID",
     "TOKEN_KEYWORD",
-    "TOKEN_COMMA",
-    "TOKEN_COLON",
-    "TOKEN_ID",
-    "TOKEN_IMM",
-    "TOKEN_MAX"
+    "TOKEN_COMMA  ",
+    "TOKEN_COLON  ",
+    "TOKEN_ID     ",
+    "TOKEN_IMM    ",
+    "TOKEN_MAX    "
 };
 
 struct __token__ {
@@ -66,7 +72,6 @@ u32 _atoi(char *str)
     u32 i;
     u32 len; 
     u32 sum = 0;
-
     len = strlen(str);
     if (len == 0) {
         return 0;
@@ -116,6 +121,7 @@ u32 _atoi(char *str)
     }
     return sum;
 }
+
 s32 is_letter(char c)
 {
     if (c >= 'a' && c <= 'z' ||
@@ -186,7 +192,7 @@ s32 parse_line(char *line)
     u32 start, end, len;
     char c;
     while((c = line[i]) != 0) {
-        printf("%d get [%c] \n", __LINE__, c);
+        DEBUG("%d get [%c] \n", __LINE__, c);
         if (c == ' ') {
             i++;
         } else if (c == ';') {      /* the comment */
@@ -196,10 +202,10 @@ s32 parse_line(char *line)
             i++;
             while (is_id(c)) {
                 c = line[i++];
-                printf("%d get %c \n", __LINE__, c);
+                DEBUG("%d get [%c] \n", __LINE__, c);
             }
             end = i-1;
-            printf("start: %d; end: %d \n", start, end);
+            DEBUG("start: %d; end: %d \n", start, end);
             if ((j = is_keyword(&line[start], end-start))) {
                 put_token(TOKEN_KEYWORD, j);
             } else { /* id */
@@ -209,6 +215,7 @@ s32 parse_line(char *line)
 
         } else if (c == '#') {      /* immediate num */
             i++;
+            start = i;
             if (line[i] == '0' && (line[i+1] == 'x' || line[i+1] == 'X')) { /* hex FIXME: i+1 i+2 may overstep the boundary */
                 radix = 16;
                 i = i + 2; /* skip '0' 'x' */
@@ -216,15 +223,13 @@ s32 parse_line(char *line)
                 radix = 10;
             }
 
-            start = i;
             c = line[i++];
             while(is_digit(c)) {
                 c = line[i++];
             }
-            end = i;
-            printf("%x [%c] \n", line[end], line[end]);
+            end = i-1;
+            DEBUG("%x [%c] \n", line[end], line[end]);
             line[end] = '\0'; /* for atoi */
-            i++;    /* skip the ' ' */
 
             num = _atoi(&line[start]);
             put_token(TOKEN_IMM, num);
@@ -268,27 +273,38 @@ s32 parse_token(char *ifile)
     { 
         memset(line, 0, sizeof(line));
         fgets(line,sizeof(line),fp);
-        printf("%s\n", line);
+        DEBUG("%s\n", line);
         parse_line(line);
     } 
 
     return 0;
 
 }
+s32 dump_token()
+{
+    u32 i;
+    for(i=0;i<POOL_SIZE;i++) {
+        if (token_pool[i].type != TOKEN_INVALID) {
+            printf("[%d]: [%s] ", i, type_desc[token_pool[i].type & 0xFFFF]);
+            if ((token_pool[i].type & 0xFFFF) == TOKEN_KEYWORD) {
+                printf("%s \n", keyword[token_pool[i].value]);
+            } else {
+                printf("0x%x (%d)\n", token_pool[i].value, token_pool[i].value);
+            }
+        }
+    }
+    return 0;
+}
+
 
 int main(int argc, char **argv)
 {
-    u32 i;
     if (argc != 2) {
         printf("%s [foo.s]\n", argv[0]);
         exit(-1);
     }
 
     parse_token(argv[1]);
-    for(i=0;i<POOL_SIZE;i++) {
-        if (token_pool[i].type != TOKEN_INVALID) {
-            printf("[%d]: [%s] [0x%x]\n", type_desc[token_pool[i].type], token_pool[i].value);
-        }
-    }
+    dump_token();
     return 0;
 }

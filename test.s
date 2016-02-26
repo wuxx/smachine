@@ -1,4 +1,4 @@
-CATE #0x0
+LOCATE #0x0
 
 ldr r0, #0x12345678
 mov r1, r0
