@@ -63,6 +63,7 @@ char *keyword[] = { "NULL",
                     "LOCATE", /* locate the mem of instruction */
                     };
 
+u8 cpu_mem[MEM_SIZE] = {0}; 
 u32 tindex = 0, iindex = 0;
 struct __token__ token_pool[POOL_SIZE];
 struct __id__    id_pool[POOL_SIZE];
@@ -277,9 +278,11 @@ s32 parse_token(char *ifile)
         parse_line(line);
     } 
 
+    tindex = 0; /* reset the index */
     return 0;
 
 }
+
 s32 dump_token()
 {
     u32 i;
@@ -296,6 +299,18 @@ s32 dump_token()
     return 0;
 }
 
+s32 build_inst(u32 op_type, u32 am_dst, u32 dst, u32 am_src1, u32 src1, u32 am_src2, u32 src2)
+{
+    return 0;
+}
+
+s32 gen_code()
+{
+    u32 addr = 0;
+    s32 op_type = -1;
+    struct __instruction__ inst;
+    return 0;
+}
 
 int main(int argc, char **argv)
 {
@@ -306,5 +321,6 @@ int main(int argc, char **argv)
 
     parse_token(argv[1]);
     dump_token();
+    gen_code();
     return 0;
 }

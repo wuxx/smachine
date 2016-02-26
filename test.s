@@ -1,6 +1,6 @@
 LOCATE #0x0
-
-ldr r0, #0x12345678
+; comment
+ldr r0, #0x12345678 ; some comment
 mov r1, r0
 mov r1, r0
 ldr r0, [r1]
