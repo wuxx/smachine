@@ -9,7 +9,7 @@
 
 #include "cpu.h"
 
-#if 0
+#if 1
 #define DEBUG(fmt, ...)     printf(fmt, ##__VA_ARGS__)
 #else
 #define DEBUG(fmt, ...)
@@ -50,13 +50,25 @@ struct __id__ {
     u32 addr;
 };
 
+enum KEYWORD_E {
+    KW_INVALID = 0,
+    KW_MOV,  KW_LDR,  KW_STR,
+    KW_PUSH, KW_POP,
+    KW_CALL, KW_RET,
+    KW_ADD,  KW_SUB,  KW_DIV,  KW_MUL,  KW_AND,   KW_OR,    KW_XOR,
+    KW_JMP,  KW_JMPN, KW_JMPZ, KW_JMPO, KW_JMPNN, KW_JMPNZ, KW_JMPNO,
+    KW_R0,   KW_R1,   KW_R2,   KW_R3,
+    KW_SP, /* ALIAS OF R2 */
+    KW_PC, /* ALIAS OF R3 */
+    KW_LOCATE, /* LOCATE THE MEM OF INSTRUCTION */
+};
+
 char *keyword[] = { "NULL",
                     "mov",  "ldr",  "str",
                     "push", "pop",
                     "call", "ret",
                     "add",  "sub",  "div",  "mul",  "and",   "or",    "xor",
                     "jmp",  "jmpn", "jmpz", "jmpo", "jmpnn", "jmpnz", "jmpno",
-                    "LOCATE",
                     "r0",   "r1",   "r2",   "r3",
                     "sp", /* alias of r2 */
                     "pc", /* alias of r3 */
@@ -171,6 +183,7 @@ s32 put_token(u32 _type, u32 _value)
     token_pool[tindex].type  = _type;
     token_pool[tindex].value = _value;
     tindex++;
+
     assert(tindex < POOL_SIZE);
 }
 
@@ -205,13 +218,14 @@ s32 parse_line(char *line)
                 c = line[i++];
                 DEBUG("%d get [%c] \n", __LINE__, c);
             }
-            end = i-1;
+            i--;
+            end = i;
             DEBUG("start: %d; end: %d \n", start, end);
             if ((j = is_keyword(&line[start], end-start))) {
                 put_token(TOKEN_KEYWORD, j);
             } else { /* id */
-                i = put_id(&line[start], end-start);
-                put_token(TOKEN_ID, i);
+                j = put_id(&line[start], end-start);
+                put_token(TOKEN_ID, j);
             }
 
         } else if (c == '#') {      /* immediate num */
@@ -248,8 +262,10 @@ s32 parse_line(char *line)
             assert(line[i++] == ']');
         } else if (c == ',') {
             put_token(TOKEN_COMMA, 0);
+            i++;
         } else if (c == ':') {
             put_token(TOKEN_COLON, 0);
+            i++;
         } else if (c == '\n') {
             return 0;
         } else {
@@ -278,7 +294,6 @@ s32 parse_token(char *ifile)
         parse_line(line);
     } 
 
-    tindex = 0; /* reset the index */
     return 0;
 
 }
@@ -309,6 +324,67 @@ s32 gen_code()
     u32 addr = 0;
     s32 op_type = -1;
     struct __instruction__ inst;
+    for(tindex=0;tindex<POOL_SIZE;) {
+        switch (token_pool[tindex].type) {
+            case (KW_MOV):
+                break;
+            case (KW_LDR):
+                break;
+            case (KW_STR):
+                break;
+            case (KW_PUSH):
+                break;
+            case (KW_POP):
+                break;
+            case (KW_CALL):
+                break;
+            case (KW_RET):
+                break;
+            case (KW_ADD):
+                break;
+            case (KW_SUB):
+                break;
+            case (KW_DIV):
+                break;
+            case (KW_MUL):
+                break;
+            case (KW_AND):
+                break;
+            case (KW_OR):
+                break;
+            case (KW_XOR):
+                break;
+            case (KW_JMP):
+                break;
+            case (KW_JMPN):
+                break;
+            case (KW_JMPZ):
+                break;
+            case (KW_JMPO):
+                break;
+            case (KW_JMPNN):
+                break;
+            case (KW_JMPNZ):
+                break;
+            case (KW_JMPNO):
+                break;
+            case (KW_R0):
+                break;
+            case (KW_R1):
+                break;
+            case (KW_R2):
+                break;
+            case (KW_R3):
+                break;
+            case (KW_SP):
+                break;
+            case (KW_PC):
+                break;
+            case (KW_LOCATE):
+                break;
+        }
+    }
+
     return 0;
 }
 
