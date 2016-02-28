@@ -9,7 +9,7 @@
 
 #include "cpu.h"
 
-#if 1
+#if 0
 #define DEBUG(fmt, ...)     printf(fmt, ##__VA_ARGS__)
 #else
 #define DEBUG(fmt, ...)
@@ -75,8 +75,9 @@ char *keyword[] = { "NULL",
                     "LOCATE", /* locate the mem of instruction */
                     };
 
-u8 cpu_mem[MEM_SIZE] = {0}; 
-u32 tindex = 0, iindex = 0;
+u32 cpu_addr = 0;
+u8  cpu_mem[MEM_SIZE] = {0}; 
+u32 tindex = 0, iindex = 0; /* token index, id index */
 struct __token__ token_pool[POOL_SIZE];
 struct __id__    id_pool[POOL_SIZE];
 
@@ -254,7 +255,7 @@ s32 parse_line(char *line)
             end   = i+2;
             /* [r0|r1|r2|r3|sp|pc] */
             if (j = is_keyword(&line[start], end-start)) {
-                put_token(AM_REG_INDIRECT << 16 | TOKEN_KEYWORD, j);
+                put_token(AM_REG_INDIRECT << 16 | TOKEN_KEYWORD, j);    /* high 16bit store the addr mode info */
             } else {
                 error();
             }
@@ -314,73 +315,391 @@ s32 dump_token()
     return 0;
 }
 
-s32 build_inst(u32 op_type, u32 am_dst, u32 dst, u32 am_src1, u32 src1, u32 am_src2, u32 src2)
+s32 put_inst(u32 op_type, u32 am_dst, u32 dst, u32 am_src1, u32 src1, u32 am_src2, u32 src2)
 {
+    struct __instruction__ inst;
+
+    inst.op_type  = op_type;
+    inst.reserved = 0;
+    inst.src2     = src2;
+    inst.am_src2  = am_src2;
+    inst.src1     = src1;
+    inst.am_src1  = am_src1;
+    inst.dst      = dst;
+    inst.am_dst   = am_dst;
+
+    assert(sizeof(inst) == 4);
+    memcpy(&cpu_mem[cpu_addr], &inst, 4);
+    cpu_addr += 4;
+
     return 0;
+}
+
+s32 put_word(u32 word)
+{
+    memcpy(&cpu_mem[cpu_addr], &word, 4);
+    cpu_addr += 4;
+}
+
+u32 get_operand(u32 index)
+{
+    u32 operand;
+    switch (token_pool[index].type & 0xFFFF) {
+        case (KW_R0):
+            operand = 0;
+            break;
+        case (KW_R1):
+            operand = 1;
+            break;
+        case (KW_R2):
+            operand = 2;
+            break;
+        case (KW_R3):
+            operand = 3;
+            break;
+        case (KW_SP):
+            operand = 2;
+            break;
+        case (KW_PC):
+            operand = 3;
+            break;
+        default:
+            error();
+            break;
+    }
+    return operand;
+}
+
+s32 op_mov()
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+    u32 imm = 0;
+
+    op_type = MOV;
+
+    /* dst */
+    am_dst = AM_REG_DIRECT;
+    dst    = get_operand(tindex+1);
+
+    assert(token_pool[tindex+2].type == TOKEN_COMMA);
+
+    /* src1 */
+    am_src1 = AM_REG_DIRECT;
+    switch (token_pool[tindex+3].type) {
+        case (KW_R0):
+            src1 = 0;
+            break;
+        case (KW_R1):
+            src1 = 1;
+            break;
+        case (KW_R2):
+            src1 = 2;
+            break;
+        case (KW_R3):
+            src1 = 3;
+            break;
+        case (KW_SP):
+            src1 = 2;
+            break;
+        case (KW_PC):
+            src1 = 3;
+            break;
+        case (TOKEN_IMM):
+            src1    = 0;
+            am_src1 = AM_IMM;
+            imm     = token_pool[tindex+3].value;
+            break;
+        default:
+            error();
+            break;
+    }
+
+    /* src2 */
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    if (am_src1 == AM_IMM) {
+        put_word(imm);
+    }
+    tindex += 4;
+    return 0;
+}
+
+s32 op_ldr()
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    op_type = LDR;
+
+    am_dst = AM_REG_DIRECT;
+    dst    = get_operand(tindex+1);
+
+    assert(token_pool[tindex+2].type == TOKEN_COMMA);
+    assert((token_pool[tindex+2].type >> 16) == AM_REG_INDIRECT);
+
+    am_src1 = AM_REG_INDIRECT;
+    src1    = get_operand(tindex+3);
+
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 4;
+    return 0;
+}
+
+s32 op_str()
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    op_type = LDR;
+
+    am_src1 = AM_REG_DIRECT;
+    src1    = get_operand(tindex+1);
+
+    assert(token_pool[tindex+2].type == TOKEN_COMMA);
+
+    assert((token_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
+
+    am_dst  = AM_REG_INDIRECT;
+    dst     = get_operand(tindex+3);
+
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 4;
+    return 0;
+}
+
+s32 op_push()
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    op_type = LDR;
+
+    am_dst  = AM_REG_INDIRECT;
+    dst     = 2; /* SP */
+
+    am_src1 = AM_REG_DIRECT;
+    src1    = get_operand(tindex+1);
+
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 2;
+    return 0;
+}
+
+s32 op_pop()
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    op_type = LDR;
+
+    am_dst  = AM_REG_INDIRECT;
+    dst     = 2; /* SP */
+
+    am_src1 = AM_REG_DIRECT;
+    src1    = get_operand(tindex+1);
+
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 2;
+    return 0;
+}
+
+s32 op_call()
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    op_type = CALL;
+
+    am_dst  = AM_REG_INDIRECT;
+    dst     = 3; /* PC */
+
+    am_src1 = AM_REG_DIRECT;
+    src1    = get_operand(tindex+1);
+
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    return 0;
+}
+
+s32 op_ret()
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    op_type = CALL;
+
+    am_dst  = AM_REG_DIRECT;
+    dst     = 3; /* PC */
+
+    am_src1 = AM_REG_INDIRECT;
+    src1    = 2; /* SP */
+
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    return 0;
+}
+
+/* arithmetical logic  */
+s32 op_al(u32 type)
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    switch (type) {
+        case (KW_ADD):
+            op_type = ADD;
+            break;
+        case (KW_SUB):
+            op_type = SUB;
+            break;
+        case (KW_MUL):
+            op_type = MUL;
+            break;
+        case (KW_DIV):
+            op_type = DIV;
+            break;
+        case (KW_AND):
+            op_type = AND;
+            break;
+        case (KW_OR):
+            op_type = OR;
+            break;
+        case (KW_XOR):
+            op_type = XOR;
+            break;
+        default:
+            error();
+        break;
+    }
+
+    am_dst  = AM_REG_DIRECT;
+    dst     = get_operand(tindex+1);
+
+    assert(token_pool[tindex+2].type == TOKEN_COMMA);
+
+    am_src1 = AM_REG_DIRECT;
+    src1    = get_operand(tindex+3);
+
+    assert(token_pool[tindex+4].type == TOKEN_COMMA);
+    am_src2 = AM_REG_DIRECT;
+    src2    = get_operand(tindex+5);
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 6;
+    return 0;
+}
+
+s32 op_jmp(u32 type)
+{
+    u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+
+    switch (type) {
+        case (KW_JMP):
+            op_type = JMP;
+            break;
+        case (KW_JMPN):
+            op_type = JMPN;
+            break;
+        case (KW_JMPZ):
+            op_type = JMPZ;
+            break;
+        case (KW_JMPO):
+            op_type = JMPO;
+            break;
+        case (KW_JMPNN):
+            op_type = JMPNN;
+            break;
+        case (KW_JMPNZ):
+            op_type = JMPNZ;
+            break;
+        case (KW_JMPNO):
+            op_type = JMPNO;
+            break;
+        default:
+            error();
+        break;
+    }
+
+    am_dst  = AM_REG_DIRECT;
+    dst     = 3; /* PC */
+
+    am_src1 = AM_REG_DIRECT;
+    src1    = get_operand(tindex+1);
+
+    am_src2 = 0;
+    src2    = 0;
+
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 2;
+    return 0;
+}
+
+/* pseudo instruction */
+s32 op_locate()
+{
+    cpu_addr = token_pool[tindex+1].value;
+    assert(cpu_addr < MEM_SIZE && (cpu_addr % 4 == 0));
 }
 
 s32 gen_code()
 {
-    u32 addr = 0;
     s32 op_type = -1;
-    struct __instruction__ inst;
     for(tindex=0;tindex<POOL_SIZE;) {
         switch (token_pool[tindex].type) {
             case (KW_MOV):
+                op_mov();
                 break;
             case (KW_LDR):
+                op_ldr();
                 break;
             case (KW_STR):
+                op_str();
                 break;
             case (KW_PUSH):
+                op_push();
                 break;
             case (KW_POP):
+                op_pop();
                 break;
             case (KW_CALL):
+                op_call();
                 break;
             case (KW_RET):
+                op_ret();
                 break;
+
             case (KW_ADD):
-                break;
             case (KW_SUB):
-                break;
             case (KW_DIV):
-                break;
             case (KW_MUL):
-                break;
             case (KW_AND):
-                break;
             case (KW_OR):
-                break;
             case (KW_XOR):
+                op_al(token_pool[tindex].type);
                 break;
+
             case (KW_JMP):
-                break;
             case (KW_JMPN):
-                break;
             case (KW_JMPZ):
-                break;
             case (KW_JMPO):
-                break;
             case (KW_JMPNN):
-                break;
             case (KW_JMPNZ):
-                break;
             case (KW_JMPNO):
-                break;
-            case (KW_R0):
-                break;
-            case (KW_R1):
-                break;
-            case (KW_R2):
-                break;
-            case (KW_R3):
-                break;
-            case (KW_SP):
-                break;
-            case (KW_PC):
+                op_jmp(token_pool[tindex].type);
                 break;
             case (KW_LOCATE):
+                op_locate();
                 break;
         }
     }

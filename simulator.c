@@ -19,7 +19,7 @@ int ifd = 0, cpu_cycles = 0;
 
 
 /*
-format:
+format: op dst, src1
    mov ri, rj
    mov ri, #imm
 */
@@ -51,7 +51,7 @@ void op_mov(struct __instruction__ *pinst)
 }
 
 /*
-format:
+format: op dst, src1
     ldr ri, [rj]
 */
 void op_ldr(struct __instruction__ *pinst)
@@ -77,7 +77,7 @@ void op_ldr(struct __instruction__ *pinst)
 }
 
 /*
-format:
+format: op src, dst
     str ri, [rj] (rj is op_dst, ri is op_src1)
 */
 void op_str(struct __instruction__ *pinst)
@@ -98,7 +98,7 @@ void op_str(struct __instruction__ *pinst)
 }
 
 /*
-format:
+format: op src1
     push ri
 equal:
     str ri, [sp]
@@ -125,7 +125,7 @@ void op_push(struct __instruction__ *pinst)
 }
 
 /*
-format:
+format: op, src1
     pop ri
 equal:
     ldr ri, [sp]
@@ -153,7 +153,7 @@ void op_pop(struct __instruction__ *pinst)
 }
 
 /*
-format:
+format: op, src1
     call ri
 equal:
     mov pc, ri
@@ -182,7 +182,7 @@ void op_call(struct __instruction__ *pinst)
 }
 
 /*
-format:
+format: op
     ret
 equal:
     ldr pc, [sp]

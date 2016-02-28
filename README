@@ -38,7 +38,7 @@ local vars
 
 I. data transfer operation & addressing mode
     1. imm
-        ldr r0, #0x12345678     (0x12345678 is store at pc+4)
+        mov r0, #0x12345678     (0x12345678 is store at pc+4)
     
     2. register direct
         mov r0, r1
