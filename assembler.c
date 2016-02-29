@@ -9,8 +9,8 @@
 
 #include "cpu.h"
 
-#if 0
-#define DEBUG(fmt, ...)     printf(fmt, ##__VA_ARGS__)
+#if 1
+#define DEBUG(fmt, ...)     printf("[%s][%d]" fmt,  __func__, __LINE__, ##__VA_ARGS__)
 #else
 #define DEBUG(fmt, ...)
 #endif
@@ -344,7 +344,7 @@ s32 put_word(u32 word)
 u32 get_operand(u32 index)
 {
     u32 operand;
-    switch (token_pool[index].type & 0xFFFF) {
+    switch (token_pool[index].value) {
         case (KW_R0):
             operand = 0;
             break;
@@ -364,6 +364,7 @@ u32 get_operand(u32 index)
             operand = 3;
             break;
         default:
+            printf("%d error value %d \n",  __LINE__, token_pool[index].value);
             error();
             break;
     }
@@ -385,33 +386,12 @@ s32 op_mov()
 
     /* src1 */
     am_src1 = AM_REG_DIRECT;
-    switch (token_pool[tindex+3].type) {
-        case (KW_R0):
-            src1 = 0;
-            break;
-        case (KW_R1):
-            src1 = 1;
-            break;
-        case (KW_R2):
-            src1 = 2;
-            break;
-        case (KW_R3):
-            src1 = 3;
-            break;
-        case (KW_SP):
-            src1 = 2;
-            break;
-        case (KW_PC):
-            src1 = 3;
-            break;
-        case (TOKEN_IMM):
+    if (token_pool[tindex+3].type == TOKEN_IMM) {
             src1    = 0;
             am_src1 = AM_IMM;
             imm     = token_pool[tindex+3].value;
-            break;
-        default:
-            error();
-            break;
+    } else {
+        src1 = get_operand(tindex+3);
     }
 
     /* src2 */
@@ -436,7 +416,7 @@ s32 op_ldr()
     dst    = get_operand(tindex+1);
 
     assert(token_pool[tindex+2].type == TOKEN_COMMA);
-    assert((token_pool[tindex+2].type >> 16) == AM_REG_INDIRECT);
+    assert((token_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
 
     am_src1 = AM_REG_INDIRECT;
     src1    = get_operand(tindex+3);
@@ -529,6 +509,7 @@ s32 op_call()
     src2    = 0;
 
     put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 2;
     return 0;
 }
 
@@ -548,6 +529,7 @@ s32 op_ret()
     src2    = 0;
 
     put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 1;
     return 0;
 }
 
@@ -579,6 +561,7 @@ s32 op_al(u32 type)
             op_type = XOR;
             break;
         default:
+            DEBUG("type: %x \n", type);
             error();
         break;
     }
@@ -648,62 +631,90 @@ s32 op_jmp(u32 type)
 /* pseudo instruction */
 s32 op_locate()
 {
+    assert(token_pool[tindex+1].type == TOKEN_IMM);
     cpu_addr = token_pool[tindex+1].value;
     assert(cpu_addr < MEM_SIZE && (cpu_addr % 4 == 0));
+    tindex += 2;
 }
 
 s32 gen_code()
 {
     s32 op_type = -1;
     for(tindex=0;tindex<POOL_SIZE;) {
+        DEBUG(" %d type: %s; value: %d\n", tindex, type_desc[token_pool[tindex].type], token_pool[tindex].value);
+
         switch (token_pool[tindex].type) {
-            case (KW_MOV):
-                op_mov();
-                break;
-            case (KW_LDR):
-                op_ldr();
-                break;
-            case (KW_STR):
-                op_str();
-                break;
-            case (KW_PUSH):
-                op_push();
-                break;
-            case (KW_POP):
-                op_pop();
-                break;
-            case (KW_CALL):
-                op_call();
-                break;
-            case (KW_RET):
-                op_ret();
-                break;
+            case (TOKEN_INVALID):
+                return 0;
+            case (TOKEN_COMMA):
+            case (TOKEN_COLON):
+            case (TOKEN_ID):
+            case (TOKEN_IMM):
+                error();
 
-            case (KW_ADD):
-            case (KW_SUB):
-            case (KW_DIV):
-            case (KW_MUL):
-            case (KW_AND):
-            case (KW_OR):
-            case (KW_XOR):
-                op_al(token_pool[tindex].type);
-                break;
+            case (TOKEN_KEYWORD):
+                switch (token_pool[tindex].value)  {
+                    case (KW_MOV):
+                        op_mov();
+                        break;
+                    case (KW_LDR):
+                        op_ldr();
+                        break;
+                    case (KW_STR):
+                        op_str();
+                        break;
+                    case (KW_PUSH):
+                        op_push();
+                        break;
+                    case (KW_POP):
+                        op_pop();
+                        break;
+                    case (KW_CALL):
+                        op_call();
+                        break;
+                    case (KW_RET):
+                        op_ret();
+                        break;
 
-            case (KW_JMP):
-            case (KW_JMPN):
-            case (KW_JMPZ):
-            case (KW_JMPO):
-            case (KW_JMPNN):
-            case (KW_JMPNZ):
-            case (KW_JMPNO):
-                op_jmp(token_pool[tindex].type);
-                break;
-            case (KW_LOCATE):
-                op_locate();
-                break;
+                    case (KW_ADD):
+                    case (KW_SUB):
+                    case (KW_DIV):
+                    case (KW_MUL):
+                    case (KW_AND):
+                    case (KW_OR):
+                    case (KW_XOR):
+                        op_al(token_pool[tindex].value);
+                        break;
+
+                    case (KW_JMP):
+                    case (KW_JMPN):
+                    case (KW_JMPZ):
+                    case (KW_JMPO):
+                    case (KW_JMPNN):
+                    case (KW_JMPNZ):
+                    case (KW_JMPNO):
+                        op_jmp(token_pool[tindex].value);
+                        break;
+                    case (KW_LOCATE):
+                        op_locate();
+                        break;
+                }
         }
     }
 
+    return 0;
+}
+
+s32 dump_cpu_mem()
+{
+    u32 i;
+    u32 *p;
+
+    p = (u32*)(&cpu_mem[0]);
+
+    for(i=0;i<sizeof(cpu_mem)/4;i++) {
+        printf("[0x%08x]: 0x%08x\n", i*4, p[i]);
+    }
     return 0;
 }
 
@@ -717,5 +728,6 @@ int main(int argc, char **argv)
     parse_token(argv[1]);
     dump_token();
     gen_code();
+    dump_cpu_mem();
     return 0;
 }

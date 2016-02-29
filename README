@@ -1,6 +1,6 @@
 simple 32-bit risc cpu
 
-include the simulator, assembler
+include the simulator, assembler, ccompiler
 cpu state machine: 
 while (1) {
     instruction fetch;
@@ -52,7 +52,7 @@ II. stack operation
     2. pop r0
 
 III. function call
-    1. call #0x12345678
+    1. call r0
     2. ret
 
 IV. arithmetic operation 
