@@ -17,7 +17,6 @@ struct __cpu__ cpu =
 u8 cpu_mem[MEM_SIZE] = {0};
 int ifd = 0, cpu_cycles = 0;
 
-
 /*
 format: op dst, src1
    mov ri, rj
@@ -220,6 +219,20 @@ void op_add(struct __instruction__ *pinst)
     assert(pinst->am_src2 == AM_REG_DIRECT);
 
     R(pinst->dst) = R(pinst->src1) + R(pinst->src2);
+
+    if (R(pinst->dst) == 0x0) {
+        FLAG |=  (0x1 << FG_ZERO);
+    } else {
+        FLAG &= ~(0x1 << FG_ZERO);
+    }
+
+    if (R(pinst->dst) < R(pinst->src1) ||
+        R(pinst->dst) < R(pinst->src1)) {
+        FLAG |=  (0x1 << FG_OVFW);
+    } else {
+        FLAG &= ~(0x1 << FG_OVFW);
+    }
+
     PC = PC + 4;
 }
 
@@ -237,6 +250,19 @@ void op_sub(struct __instruction__ *pinst)
     assert(pinst->am_src2 == AM_REG_DIRECT);
 
     R(pinst->dst) = R(pinst->src1) - R(pinst->src2);
+
+    if (R(pinst->dst) == 0x0) {
+        FLAG |=  (0x1 << FG_ZERO);
+    } else {
+        FLAG &= ~(0x1 << FG_ZERO);
+    }
+
+    if (R(pinst->src1) < R(pinst->src2)) {
+        FLAG |=  (0x1 << FG_NEG);
+    } else {
+        FLAG &= ~(0x1 << FG_NEG);
+    }
+
     PC = PC + 4;
 }
 
@@ -254,6 +280,20 @@ void op_mul(struct __instruction__ *pinst)
     assert(pinst->am_src2 == AM_REG_DIRECT);
 
     R(pinst->dst) = R(pinst->src1) * R(pinst->src2);
+
+    if (R(pinst->dst) == 0x0) {
+        FLAG |=  (0x1 << FG_ZERO);
+    } else {
+        FLAG &= ~(0x1 << FG_ZERO);
+    }
+
+    if (R(pinst->dst) < R(pinst->src1) ||
+        R(pinst->dst) < R(pinst->src1)) {
+        FLAG |=  (0x1 << FG_OVFW);
+    } else {
+        FLAG &= ~(0x1 << FG_OVFW);
+    }
+
     PC = PC + 4;
 }
 
@@ -269,9 +309,17 @@ void op_div(struct __instruction__ *pinst)
     assert(pinst->am_src1 == AM_REG_DIRECT);
 
     assert(pinst->am_src2 == AM_REG_DIRECT);
+    assert(R(pinst->src2) != 0);
 
     R(pinst->dst)  = R(pinst->src1) / R(pinst->src2);
     R(pinst->src1) = R(pinst->src1) % R(pinst->src2);
+
+    if (R(pinst->dst) == 0x0) {
+        FLAG |=  (0x1 << FG_ZERO);
+    } else {
+        FLAG &= ~(0x1 << FG_ZERO);
+    }
+
     PC = PC + 4;
 }
 
@@ -289,6 +337,12 @@ void op_and(struct __instruction__ *pinst)
     assert(pinst->am_src2 == AM_REG_DIRECT);
 
     R(pinst->dst)  = R(pinst->src1) & R(pinst->src2);
+
+    if (R(pinst->dst) == 0x0) {
+        FLAG |=  (0x1 << FG_ZERO);
+    } else {
+        FLAG &= ~(0x1 << FG_ZERO);
+    }
     PC = PC + 4;
 }
 
@@ -306,6 +360,12 @@ void op_or(struct __instruction__ *pinst)
     assert(pinst->am_src2 == AM_REG_DIRECT);
 
     R(pinst->dst)  = R(pinst->src1) | R(pinst->src2);
+
+    if (R(pinst->dst) == 0x0) {
+        FLAG |=  (0x1 << FG_ZERO);
+    } else {
+        FLAG &= ~(0x1 << FG_ZERO);
+    }
     PC = PC + 4;
 }
 
@@ -323,6 +383,12 @@ void op_xor(struct __instruction__ *pinst)
     assert(pinst->am_src2 == AM_REG_DIRECT);
 
     R(pinst->dst)  = R(pinst->src1) ^ R(pinst->src2);
+
+    if (R(pinst->dst) == 0x0) {
+        FLAG |=  (0x1 << FG_ZERO);
+    } else {
+        FLAG &= ~(0x1 << FG_ZERO);
+    }
     PC = PC + 4;
 }
 
