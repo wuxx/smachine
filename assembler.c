@@ -720,14 +720,20 @@ s32 dump_cpu_mem()
 
 int main(int argc, char **argv)
 {
-    if (argc != 2) {
-        printf("%s [foo.s]\n", argv[0]);
+    int ofd;
+    if (argc != 3) {
+        printf("%s [foo.s] [bar.bin]\n", argv[0]);
         exit(-1);
+    }
+
+    if ((ofd = open(argv[2], O_RDWR | O_CREAT | O_TRUNC, 0664)) == -1) {
+        perror("open");
     }
 
     parse_token(argv[1]);
     dump_token();
     gen_code();
     dump_cpu_mem();
+    write(ofd, cpu_mem, sizeof(cpu_mem));
     return 0;
 }

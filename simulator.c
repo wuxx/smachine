@@ -617,10 +617,12 @@ void cpu_write_mem(u32 addr, u32 data)
 u32 cpu_read_mem(u32 addr)
 {
     u32 word;
+    printf("%x \n", addr);
     assert((addr % 4) == 0);
     assert(addr < MEM_SIZE);
     word = *((u32 *)(&cpu_mem[addr]));
 
+    printf("get 0x%08x\n", word);
     return word;
 }
 
@@ -638,6 +640,15 @@ void cpu_run()
     /* ID, EX */
     assert((i = is_legal(pinst)) != -1);
     is[i].hander(pinst);
+}
+
+void dump_regs()
+{
+    u32 i;
+    for(i=0;i<4;i++) {
+        printf("[R%d]: 0x%08x  ", i, R(i));
+    }
+    printf("[FLAG]: 0x%08x\n", FLAG);
 }
 
 /* simutor my cpu */
@@ -666,11 +677,16 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    assert(st.st_size < MEM_SIZE);
+    assert(st.st_size == MEM_SIZE);
 
-    PC = cpu_read_mem(RESET_HANDLER);
+    read(ifd, cpu_mem, MEM_SIZE);
+
+
+    /* PC = cpu_read_mem(RESET_HANDLER); */
+    PC = 0x0;
     while (1) {
         cpu_run();
+        dump_regs();
         cpu_cycles++;
     }
     return 0;

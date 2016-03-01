@@ -1,10 +1,11 @@
 LOCATE #0x0
 ; comment
-mov r0, #0x12345678 ; some comment
+mov r0, #0x1000 ; some comment
 mov r1, r0
 mov r1, r0
 ldr r0, [r1]
 str r0, [r1]
+mov r2, #0x2000
 push r0
 pop  r0
 call r0
