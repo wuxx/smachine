@@ -457,7 +457,7 @@ s32 op_push()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
 
-    op_type = LDR;
+    op_type = PUSH;
 
     am_dst  = AM_REG_INDIRECT;
     dst     = 2; /* SP */
@@ -477,13 +477,13 @@ s32 op_pop()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
 
-    op_type = LDR;
+    op_type = POP;
 
-    am_dst  = AM_REG_INDIRECT;
-    dst     = 2; /* SP */
+    am_dst = AM_REG_DIRECT;
+    dst    = get_operand(tindex+1);
 
-    am_src1 = AM_REG_DIRECT;
-    src1    = get_operand(tindex+1);
+    am_src1  = AM_REG_INDIRECT;
+    src1     = 2; /* SP */
 
     am_src2 = 0;
     src2    = 0;
@@ -499,7 +499,7 @@ s32 op_call()
 
     op_type = CALL;
 
-    am_dst  = AM_REG_INDIRECT;
+    am_dst  = AM_REG_DIRECT;
     dst     = 3; /* PC */
 
     am_src1 = AM_REG_DIRECT;
@@ -517,7 +517,7 @@ s32 op_ret()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
 
-    op_type = CALL;
+    op_type = RET;
 
     am_dst  = AM_REG_DIRECT;
     dst     = 3; /* PC */

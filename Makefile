@@ -3,7 +3,7 @@ ASM=assembler
 
 #CFLAGS = -m32
 
-.PHONY: all tags
+.PHONY: all tags test
 all:
 	gcc $(CFLAGS) $(SIM).c -o $(SIM)
 	gcc $(CFLAGS) $(ASM).c -o $(ASM)

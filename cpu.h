@@ -28,7 +28,7 @@
 #define SP cpu.r[2]
 #define PC cpu.r[3]
 #define FLAG (cpu.flag)
-#define RINDEX(rx) ((&rx - &cpu.r[0]) / 4)
+#define RINDEX(rx) ((&rx - &cpu.r[0]))
 
 typedef  unsigned char u8;
 typedef  signed   char s8;

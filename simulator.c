@@ -110,7 +110,6 @@ void op_push(struct __instruction__ *pinst)
 
     assert(pinst->src2 == 0);
     assert(pinst->am_src2 == 0);
-
     assert(pinst->dst == RINDEX(SP));
     assert(pinst->am_dst == AM_REG_INDIRECT);
 
