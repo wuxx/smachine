@@ -1,6 +1,8 @@
 LOCATE #0x0
 ; comment
 mov r0, #0x1000 ; some comment
+
+loop:
 mov r1, r0
 mov r1, r0
 ldr r0, [r1]

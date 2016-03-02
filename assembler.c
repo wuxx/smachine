@@ -72,7 +72,7 @@ char *keyword[] = { "NULL",
                     "r0",   "r1",   "r2",   "r3",
                     "sp", /* alias of r2 */
                     "pc", /* alias of r3 */
-                    "LOCATE", /* locate the mem of instruction */
+                    "LOCATE",   /* locate the mem of instruction */
                     };
 
 u32 cpu_addr = 0;
@@ -171,7 +171,7 @@ s32 is_digit(char c)
 s32 is_keyword(char *s, u32 len)
 {
     u32 i;   
-    for(i=0;i<sizeof(keyword);i++) {
+    for(i=0;i<(sizeof(keyword) / sizeof(keyword[0]));i++) {
         if (strncmp(keyword[i], s, len) == 0) {
             return i;
         }
@@ -225,6 +225,7 @@ s32 parse_line(char *line)
             if ((j = is_keyword(&line[start], end-start))) {
                 put_token(TOKEN_KEYWORD, j);
             } else { /* id */
+                assert(line[end] == ':');
                 j = put_id(&line[start], end-start);
                 put_token(TOKEN_ID, j);
             }
@@ -648,9 +649,11 @@ s32 gen_code()
                 return 0;
             case (TOKEN_COMMA):
             case (TOKEN_COLON):
-            case (TOKEN_ID):
             case (TOKEN_IMM):
                 error();
+            case (TOKEN_ID):
+                tindex += 2;
+                break;
 
             case (TOKEN_KEYWORD):
                 switch (token_pool[tindex].value)  {
