@@ -393,10 +393,26 @@ void op_xor(struct __instruction__ *pinst)
 
 /*
 format:
-    jmp ri
-equal:
-    mov pc, ri
+    jmp ri      (mov pc, ri)
     jmp #imm TODO
+
+    jmpn ri     (if (neg) { mov pc, ri })
+    jmpn #imm TODO
+
+    jmpz ri
+    jmpz #imm TODO
+
+    jmpo ri
+    jmpo #imm TODO
+
+    jmpnn ri
+    jmpnn #imm TODO
+
+    jmpnz ri
+    jmpnz #imm TODO
+
+    jmpno ri
+    jmpno #imm TODO
 */
 void op_jmp(struct __instruction__ *pinst)
 {
@@ -407,149 +423,54 @@ void op_jmp(struct __instruction__ *pinst)
 
     assert(pinst->src2    == 0);
     assert(pinst->am_src2 == 0);
-
-    PC = R(pinst->src1);
-}
-
-/*
-format:
-    jmpn ri
-equal:
-    if (neg) {
-        mov pc, ri
-    }
-    jmpn #imm TODO
-*/
-void op_jmpn(struct __instruction__ *pinst)
-{
-    assert(pinst->dst     == RINDEX(PC));
-    assert(pinst->am_dst  == AM_REG_DIRECT);
-
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->src2    == 0);
-    assert(pinst->am_src2 == 0);
-
-
-    if (get_bit(FLAG, FG_NEG)) {
-        PC = R(pinst->src1);
-    } else {
-        PC = PC + 4;
-    }
-}
-
-/*
-format:
-    jmpz ri
-    jmpz #imm TODO
-*/
-void op_jmpz(struct __instruction__ *pinst)
-{
-    assert(pinst->dst     == RINDEX(PC));
-    assert(pinst->am_dst  == AM_REG_DIRECT);
-
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->src2    == 0);
-    assert(pinst->am_src2 == 0);
-
-
-    if (get_bit(FLAG, FG_ZERO)) {
-        PC = R(pinst->src1);
-    } else {
-        PC = PC + 4;
-    }
-}
-
-/*
-format:
-    jmpo ri
-    jmpo #imm TODO
-*/
-void op_jmpo(struct __instruction__ *pinst)
-{
-    assert(pinst->dst     == RINDEX(PC));
-    assert(pinst->am_dst  == AM_REG_DIRECT);
-
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->src2    == 0);
-    assert(pinst->am_src2 == 0);
-
-
-    if (get_bit(FLAG, FG_OVFW)) {
-        PC = R(pinst->src1);
-    } else {
-        PC = PC + 4;
-    }
-}
-
-/*
-format:
-    jmpnn ri
-    jmpnn #imm TODO
-*/
-void op_jmpnn(struct __instruction__ *pinst)
-{
-    assert(pinst->dst     == RINDEX(PC));
-    assert(pinst->am_dst  == AM_REG_DIRECT);
-
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->src2    == 0);
-    assert(pinst->am_src2 == 0);
-
-
-    if (!get_bit(FLAG, FG_NEG)) {
-        PC = R(pinst->src1);
-    } else {
-        PC = PC + 4;
-    }
-}
-
-/*
-format:
-    jmpnz ri
-    jmpnz #imm TODO
-*/
-void op_jmpnz(struct __instruction__ *pinst)
-{
-    assert(pinst->dst     == RINDEX(PC));
-    assert(pinst->am_dst  == AM_REG_DIRECT);
-
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->src2    == 0);
-    assert(pinst->am_src2 == 0);
-
-
-    if (!get_bit(FLAG, FG_ZERO)) {
-        PC = R(pinst->src1);
-    } else {
-        PC = PC + 4;
-    }
-}
-
-/*
-format:
-    jmpno ri
-    jmpno #imm TODO
-*/
-void op_jmpno(struct __instruction__ *pinst)
-{
-    assert(pinst->dst     == RINDEX(PC));
-    assert(pinst->am_dst  == AM_REG_DIRECT);
-
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->src2    == 0);
-    assert(pinst->am_src2 == 0);
-
-
-    if (!get_bit(FLAG, FG_OVFW)) {
-        PC = R(pinst->src1);
-    } else {
-        PC = PC + 4;
+    switch (pinst->op_type) {
+        case (JMP):
+            PC = R(pinst->src1);
+            break;
+        case (JMPN):
+            if (get_bit(FLAG, FG_NEG)) {
+                PC = R(pinst->src1);
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPZ):
+            if (get_bit(FLAG, FG_ZERO)) {
+                PC = R(pinst->src1);
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPO):
+            if (get_bit(FLAG, FG_OVFW)) {
+                PC = R(pinst->src1);
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPNN):
+            if (!get_bit(FLAG, FG_NEG)) {
+                PC = R(pinst->src1);
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPNZ):
+            if (!get_bit(FLAG, FG_ZERO)) {
+                PC = R(pinst->src1);
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPNO):
+            if (!get_bit(FLAG, FG_OVFW)) {
+                PC = R(pinst->src1);
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        default:
+            error();
     }
 }
 
@@ -573,12 +494,12 @@ struct __instruction_set__ is[] = {
     {"xor",   XOR,   op_xor},
 
     {"jmp",   JMP,   op_jmp},
-    {"jmpn",  JMPN,  op_jmpn},
-    {"jmpz",  JMPZ,  op_jmpz},
-    {"jmpo",  JMPO,  op_jmpo},
-    {"jmpnn", JMPNN, op_jmpnn},
-    {"jmpnz", JMPNZ, op_jmpnz},
-    {"jmpno", JMPNO, op_jmpno},
+    {"jmpn",  JMPN,  op_jmp},
+    {"jmpz",  JMPZ,  op_jmp},
+    {"jmpo",  JMPO,  op_jmp},
+    {"jmpnn", JMPNN, op_jmp},
+    {"jmpnz", JMPNZ, op_jmp},
+    {"jmpno", JMPNO, op_jmp},
 };
 
 /* basic sanity check */

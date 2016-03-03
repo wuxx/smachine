@@ -386,12 +386,12 @@ s32 op_mov()
     assert(token_pool[tindex+2].type == TOKEN_COMMA);
 
     /* src1 */
-    am_src1 = AM_REG_DIRECT;
     if (token_pool[tindex+3].type == TOKEN_IMM) {
-            src1    = 0;
-            am_src1 = AM_IMM;
-            imm     = token_pool[tindex+3].value;
+        am_src1 = AM_IMM;
+        src1    = 0;
+        imm     = token_pool[tindex+3].value;
     } else {
+        am_src1 = AM_REG_DIRECT;
         src1 = get_operand(tindex+3);
     }
 
@@ -586,6 +586,7 @@ s32 op_al(u32 type)
 
 s32 op_jmp(u32 type)
 {
+    u32 imm;
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
 
     switch (type) {
@@ -618,13 +619,23 @@ s32 op_jmp(u32 type)
     am_dst  = AM_REG_DIRECT;
     dst     = 3; /* PC */
 
-    am_src1 = AM_REG_DIRECT;
-    src1    = get_operand(tindex+1);
+    if (token_pool[tindex+1].type == TOKEN_IMM) {
+        src1    = 0;
+        am_src1 = AM_IMM;
+        imm     = token_pool[tindex+1].value;
+    } else {
+        am_src1 = AM_REG_DIRECT;
+        src1    = get_operand(tindex+1);
+    }
 
     am_src2 = 0;
     src2    = 0;
 
     put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    if (am_src1 == AM_IMM) {
+        put_word(imm);
+    }
+
     tindex += 2;
     return 0;
 }
@@ -640,6 +651,7 @@ s32 op_locate()
 
 s32 gen_code()
 {
+    u32 i;
     s32 op_type = -1;
     for(tindex=0;tindex<POOL_SIZE;) {
         DEBUG(" %d type: %s; value: %d\n", tindex, type_desc[token_pool[tindex].type], token_pool[tindex].value);
@@ -652,6 +664,9 @@ s32 gen_code()
             case (TOKEN_IMM):
                 error();
             case (TOKEN_ID):
+                i = token_pool[tindex].value;
+                id_pool[i].addr = cpu_addr;
+                printf("[%s]: 0x%08x\n", id_pool[i].buf, cpu_addr);
                 tindex += 2;
                 break;
 
