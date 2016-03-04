@@ -47,7 +47,7 @@ struct __token__ {
 
 struct __id__ {
     char *buf;
-    u32 addr;
+    s32 addr;
 };
 
 enum KEYWORD_E {
@@ -190,11 +190,19 @@ s32 put_token(u32 _type, u32 _value)
 
 s32 put_id(char *s, u32 len)
 {
+    u32 i;
+    for(i=0;i<iindex;i++) {
+        if (strncmp(id_pool[i].buf, s, len-1) == 0) {
+            return i;
+
+        }
+    }
+
     id_pool[iindex].buf = malloc(len+1);
     memcpy(id_pool[iindex].buf, s, len);
     id_pool[iindex].buf[len] = '\0';
 
-    id_pool[iindex].addr = 0;
+    id_pool[iindex].addr = -1;
     iindex++;
     assert(iindex < POOL_SIZE);
     return iindex - 1;
@@ -225,7 +233,6 @@ s32 parse_line(char *line)
             if ((j = is_keyword(&line[start], end-start))) {
                 put_token(TOKEN_KEYWORD, j);
             } else { /* id */
-                assert(line[end] == ':');
                 j = put_id(&line[start], end-start);
                 put_token(TOKEN_ID, j);
             }
@@ -623,9 +630,13 @@ s32 op_jmp(u32 type)
         src1    = 0;
         am_src1 = AM_IMM;
         imm     = token_pool[tindex+1].value;
-    } else {
+    } else if (token_pool[tindex+1].type == TOKEN_KEYWORD) {
         am_src1 = AM_REG_DIRECT;
         src1    = get_operand(tindex+1);
+    }  else if (token_pool[tindex+1].type == TOKEN_ID) {
+        src1    = 0;
+        am_src1 = AM_IMM;
+        imm     = id_pool[token_pool[tindex+1].value].addr;
     }
 
     am_src2 = 0;
@@ -660,13 +671,15 @@ s32 gen_code()
             case (TOKEN_INVALID):
                 return 0;
             case (TOKEN_COMMA):
-            case (TOKEN_COLON):
             case (TOKEN_IMM):
                 error();
             case (TOKEN_ID):
                 i = token_pool[tindex].value;
+                assert(id_pool[i].addr == -1);
+
                 id_pool[i].addr = cpu_addr;
                 printf("[%s]: 0x%08x\n", id_pool[i].buf, cpu_addr);
+                assert(token_pool[tindex+1].type ==TOKEN_COLON);
                 tindex += 2;
                 break;
 

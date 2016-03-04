@@ -602,7 +602,7 @@ int main(int argc, char **argv)
     read(ifd, cpu_mem, MEM_SIZE);
 
 
-    /* PC = cpu_read_mem(RESET_HANDLER); */
+    PC = RESET_HANDLER;
     PC = 0x0;
     while (1) {
         cpu_run();
