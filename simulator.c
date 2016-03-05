@@ -416,61 +416,72 @@ format:
 */
 void op_jmp(struct __instruction__ *pinst)
 {
+    u32 imm;
+
     assert(pinst->dst     == RINDEX(PC));
     assert(pinst->am_dst  == AM_REG_DIRECT);
 
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
     assert(pinst->src2    == 0);
     assert(pinst->am_src2 == 0);
-    switch (pinst->op_type) {
-        case (JMP):
-            PC = R(pinst->src1);
-            break;
-        case (JMPN):
-            if (get_bit(FLAG, FG_NEG)) {
+
+    if (pinst->am_src1 == AM_REG_DIRECT) {
+        switch (pinst->op_type) {
+            case (JMP):
                 PC = R(pinst->src1);
-            } else {
-                PC = PC + 4;
-            }
-            break;
-        case (JMPZ):
-            if (get_bit(FLAG, FG_ZERO)) {
-                PC = R(pinst->src1);
-            } else {
-                PC = PC + 4;
-            }
-            break;
-        case (JMPO):
-            if (get_bit(FLAG, FG_OVFW)) {
-                PC = R(pinst->src1);
-            } else {
-                PC = PC + 4;
-            }
-            break;
-        case (JMPNN):
-            if (!get_bit(FLAG, FG_NEG)) {
-                PC = R(pinst->src1);
-            } else {
-                PC = PC + 4;
-            }
-            break;
-        case (JMPNZ):
-            if (!get_bit(FLAG, FG_ZERO)) {
-                PC = R(pinst->src1);
-            } else {
-                PC = PC + 4;
-            }
-            break;
-        case (JMPNO):
-            if (!get_bit(FLAG, FG_OVFW)) {
-                PC = R(pinst->src1);
-            } else {
-                PC = PC + 4;
-            }
-            break;
-        default:
-            error();
+                break;
+            case (JMPN):
+                if (get_bit(FLAG, FG_NEG)) {
+                    PC = R(pinst->src1);
+                } else {
+                    PC = PC + 4;
+                }
+                break;
+            case (JMPZ):
+                if (get_bit(FLAG, FG_ZERO)) {
+                    PC = R(pinst->src1);
+                } else {
+                    PC = PC + 4;
+                }
+                break;
+            case (JMPO):
+                if (get_bit(FLAG, FG_OVFW)) {
+                    PC = R(pinst->src1);
+                } else {
+                    PC = PC + 4;
+                }
+                break;
+            case (JMPNN):
+                if (!get_bit(FLAG, FG_NEG)) {
+                    PC = R(pinst->src1);
+                } else {
+                    PC = PC + 4;
+                }
+                break;
+            case (JMPNZ):
+                if (!get_bit(FLAG, FG_ZERO)) {
+                    PC = R(pinst->src1);
+                } else {
+                    PC = PC + 4;
+                }
+                break;
+            case (JMPNO):
+                if (!get_bit(FLAG, FG_OVFW)) {
+                    PC = R(pinst->src1);
+                } else {
+                    PC = PC + 4;
+                }
+                break;
+            default:
+                error();
+        }
+    } else if (pinst->am_src1 == AM_IMM) {
+        assert(pinst->src1 == 0);
+        imm = cpu_read_mem(PC + 4);
+        assert(((imm % 4) == 0) && (imm < MEM_SIZE));
+        PC = imm;
+
+    } else {
+        error();
     }
 }
 
