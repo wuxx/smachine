@@ -203,191 +203,128 @@ void op_ret(struct __instruction__ *pinst)
     SP = SP + 4;
 }
 
-/*  FIXME: update the flag
+void update_flag(u32 n, u32 z, u32 o)
+{
+    FLAG = n << 0x2 | z << 0x1 | o ; 
+}
+
+/* 
 format:
     add ri, rj, rk
+    add ri, rj, #imm 
 
-    add ri, rj, #imm TODO
-*/
-void op_add(struct __instruction__ *pinst)
-{
-    assert(pinst->am_dst  == AM_REG_DIRECT);
-
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->am_src2 == AM_REG_DIRECT);
-
-    R(pinst->dst) = R(pinst->src1) + R(pinst->src2);
-
-    if (R(pinst->dst) == 0x0) {
-        FLAG |=  (0x1 << FG_ZERO);
-    } else {
-        FLAG &= ~(0x1 << FG_ZERO);
-    }
-
-    if (R(pinst->dst) < R(pinst->src1) ||
-        R(pinst->dst) < R(pinst->src1)) {
-        FLAG |=  (0x1 << FG_OVFW);
-    } else {
-        FLAG &= ~(0x1 << FG_OVFW);
-    }
-
-    PC = PC + 4;
-}
-
-/*
-format:
     sub ri, rj, rk
-    sub ri, rj, #imm TODO
-*/
-void op_sub(struct __instruction__ *pinst)
-{
-    assert(pinst->am_dst  == AM_REG_DIRECT);
+    sub ri, rj, #imm 
 
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->am_src2 == AM_REG_DIRECT);
-
-    R(pinst->dst) = R(pinst->src1) - R(pinst->src2);
-
-    if (R(pinst->dst) == 0x0) {
-        FLAG |=  (0x1 << FG_ZERO);
-    } else {
-        FLAG &= ~(0x1 << FG_ZERO);
-    }
-
-    if (R(pinst->src1) < R(pinst->src2)) {
-        FLAG |=  (0x1 << FG_NEG);
-    } else {
-        FLAG &= ~(0x1 << FG_NEG);
-    }
-
-    PC = PC + 4;
-}
-
-/*
-format:
     mul ri, rj, rk
-    mul ri, rj, #imm TODO
-*/
-void op_mul(struct __instruction__ *pinst)
-{
-    assert(pinst->am_dst  == AM_REG_DIRECT);
+    mul ri, rj, #imm 
 
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->am_src2 == AM_REG_DIRECT);
-
-    R(pinst->dst) = R(pinst->src1) * R(pinst->src2);
-
-    if (R(pinst->dst) == 0x0) {
-        FLAG |=  (0x1 << FG_ZERO);
-    } else {
-        FLAG &= ~(0x1 << FG_ZERO);
-    }
-
-    if (R(pinst->dst) < R(pinst->src1) ||
-        R(pinst->dst) < R(pinst->src1)) {
-        FLAG |=  (0x1 << FG_OVFW);
-    } else {
-        FLAG &= ~(0x1 << FG_OVFW);
-    }
-
-    PC = PC + 4;
-}
-
-/*
-format:
     div ri, rj, rk
-    div ri, rj, #imm TODO
-*/
-void op_div(struct __instruction__ *pinst)
-{
-    assert(pinst->am_dst  == AM_REG_DIRECT);
+    div ri, rj, #imm 
 
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->am_src2 == AM_REG_DIRECT);
-    assert(R(pinst->src2) != 0);
-
-    R(pinst->dst)  = R(pinst->src1) / R(pinst->src2);
-    R(pinst->src1) = R(pinst->src1) % R(pinst->src2);
-
-    if (R(pinst->dst) == 0x0) {
-        FLAG |=  (0x1 << FG_ZERO);
-    } else {
-        FLAG &= ~(0x1 << FG_ZERO);
-    }
-
-    PC = PC + 4;
-}
-
-/*
-format:
     and ri, rj, rk
-    and ri, rj, #imm TODO
-*/
-void op_and(struct __instruction__ *pinst)
-{
-    assert(pinst->am_dst  == AM_REG_DIRECT);
+    and ri, rj, #imm 
 
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->am_src2 == AM_REG_DIRECT);
-
-    R(pinst->dst)  = R(pinst->src1) & R(pinst->src2);
-
-    if (R(pinst->dst) == 0x0) {
-        FLAG |=  (0x1 << FG_ZERO);
-    } else {
-        FLAG &= ~(0x1 << FG_ZERO);
-    }
-    PC = PC + 4;
-}
-
-/*
-format:
     or ri, rj, rk
-    or ri, rj, #imm TODO
-*/
-void op_or(struct __instruction__ *pinst)
-{
-    assert(pinst->am_dst  == AM_REG_DIRECT);
+    or ri, rj, #imm
 
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
-    assert(pinst->am_src2 == AM_REG_DIRECT);
-
-    R(pinst->dst)  = R(pinst->src1) | R(pinst->src2);
-
-    if (R(pinst->dst) == 0x0) {
-        FLAG |=  (0x1 << FG_ZERO);
-    } else {
-        FLAG &= ~(0x1 << FG_ZERO);
-    }
-    PC = PC + 4;
-}
-
-/*
-format:
     xor ri, rj, rk
-    xor ri, rj, #imm TODO
+    xor ri, rj, #imm
 */
-void op_xor(struct __instruction__ *pinst)
+void op_al(struct __instruction__ *pinst)
 {
+    u32 imm;
+    u32 flag_n = 0, flag_z = 0, flag_o = 0;
+
     assert(pinst->am_dst  == AM_REG_DIRECT);
 
     assert(pinst->am_src1 == AM_REG_DIRECT);
 
-    assert(pinst->am_src2 == AM_REG_DIRECT);
-
-    R(pinst->dst)  = R(pinst->src1) ^ R(pinst->src2);
-
-    if (R(pinst->dst) == 0x0) {
-        FLAG |=  (0x1 << FG_ZERO);
-    } else {
-        FLAG &= ~(0x1 << FG_ZERO);
+    switch (pinst->am_src2) {
+        case (AM_IMM):
+            imm = cpu_read_mem(PC + 4);
+            PC = PC + 4;
+            break;
+        case (AM_REG_DIRECT):
+            imm = R(pinst->src2);   /* treat as imm */
+            break;
+        default:
+            error();
     }
+
+    switch (pinst->op_type) {
+        case (ADD):
+            R(pinst->dst) = R(pinst->src1) + imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+
+            if (R(pinst->dst) < R(pinst->src1) ||
+                R(pinst->dst) < R(pinst->src1)) {
+                flag_o = 1;
+            }
+            break;
+        case (SUB):
+            R(pinst->dst) = R(pinst->src1) - imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+
+            if (R(pinst->src1) < R(pinst->src2)) {
+                flag_n = 1;
+            }
+
+            break;
+        case (MUL):
+            R(pinst->dst) = R(pinst->src1) * imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+
+            if (R(pinst->dst) < R(pinst->src1) ||
+                    R(pinst->dst) < R(pinst->src1)) {
+                flag_o = 1;
+            }
+            break;
+        case (DIV):
+            assert(R(pinst->src2) != 0);
+
+            R(pinst->dst)  = R(pinst->src1) / imm;
+            R(pinst->src1) = R(pinst->src1) % imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+            break;
+        case (AND):
+            R(pinst->dst)  = R(pinst->src1) & imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+            break;
+        case (OR):
+            R(pinst->dst)  = R(pinst->src1) | imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+            break;
+        case (XOR):
+            R(pinst->dst)  = R(pinst->src1) ^ imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+            break;
+        default:
+            error();
+    }
+
+
     PC = PC + 4;
 }
 
@@ -496,13 +433,13 @@ struct __instruction_set__ is[] = {
     {"call",  CALL,  op_call},
     {"ret",   RET,   op_ret},
 
-    {"add",   ADD,   op_add},
-    {"sub",   SUB,   op_sub},
-    {"mul",   MUL,   op_mul},
-    {"div",   DIV,   op_div},
-    {"and",   AND,   op_and},
-    {"or",    OR,    op_or},
-    {"xor",   XOR,   op_xor},
+    {"add",   ADD,   op_al},
+    {"sub",   SUB,   op_al},
+    {"mul",   MUL,   op_al},
+    {"div",   DIV,   op_al},
+    {"and",   AND,   op_al},
+    {"or",    OR,    op_al},
+    {"xor",   XOR,   op_al},
 
     {"jmp",   JMP,   op_jmp},
     {"jmpn",  JMPN,  op_jmp},

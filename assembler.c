@@ -545,6 +545,7 @@ s32 op_ret()
 s32 op_al(u32 type)
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+    u32 imm;
 
     switch (type) {
         case (KW_ADD):
@@ -583,10 +584,24 @@ s32 op_al(u32 type)
     src1    = get_operand(tindex+3);
 
     assert(token_pool[tindex+4].type == TOKEN_COMMA);
-    am_src2 = AM_REG_DIRECT;
-    src2    = get_operand(tindex+5);
+    switch (token_pool[tindex+5].type) {
+        case (TOKEN_IMM):
+            am_src2 = AM_IMM;
+            src2    = 0;
+            imm     = token_pool[tindex+5].value;
+            break;
+        case (TOKEN_KEYWORD):
+            am_src2 = AM_REG_DIRECT;
+            src2    = get_operand(tindex+5);
+            break;
+        default:
+            error();
+    }
 
     put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    if (am_src2 == AM_IMM) {
+        put_word(imm);
+    }
     tindex += 6;
     return 0;
 }

@@ -14,6 +14,7 @@ pop  r0
 ;call r0
 ;ret
 add r0, r0, r1
+add r0, r0, #0x1
 div r0, r0, r1
 sub r0, r0, r1
 or  r0, r0, r1
