@@ -1,18 +1,20 @@
 SIM=simulator
-ASM=assembler
+AS=assembler
+CC=ccompiler
 
 #CFLAGS = -m32
 
 .PHONY: all tags test
 all:
 	gcc $(CFLAGS) $(SIM).c -o $(SIM)
-	gcc $(CFLAGS) $(ASM).c -o $(ASM)
+	gcc $(CFLAGS) $(AS).c -o $(AS)
+	gcc $(CFLAGS) $(CC).c -o $(CC)
 
 test:
-	./$(ASM) test.s bar.bin
+	./$(AS) test.s bar.bin
 
 tags:
 	ctags -R .
 
 clean:	
-	rm -f $(SIM) $(ASM) tags bar.bin
+	rm -f $(SIM) $(AS) $(CC) tags bar.bin
