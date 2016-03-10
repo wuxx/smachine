@@ -106,6 +106,21 @@ struct __token__ c_token_pool[] = {
     {TOKEN_ID,               "",         0},
 }; 
 
+int put_token(int type, int value)
+{
+    return 0;
+}
+
+int put_id(char *id, int len)
+{
+    return 0;
+}
+
+int parse_token(int ifd)
+{
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     int ifd, ofd;
@@ -126,5 +141,6 @@ int main(int argc, char **argv)
         exit(-1);
     }   
 
+    parse_token(ifd);
     return 0;
 }
