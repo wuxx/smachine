@@ -8,6 +8,8 @@
 
 #include "cpu.h"
 
+#define POOL_SIZE (10240)
+
 enum TOKEN_TYPE_E {
     TOKEN_KW_IF = 0,        /* "if"     */
     TOKEN_KW_ELSE,          /* "else"   */
@@ -60,7 +62,9 @@ struct __token__ {
     int   value;
 };
 
-struct __token__ id_token_pool[1024];
+int ifd, ofd;
+
+struct __token__ id_token_pool[POOL_SIZE];
 
 struct __token__ c_token_pool[] = {
     {TOKEN_KW_IF,            "if",       0},
@@ -116,14 +120,23 @@ int put_id(char *id, int len)
     return 0;
 }
 
-int parse_token(int ifd)
+char get_char()
+{
+    char c;
+    if (read(ifd, &c, 1) == 0) {
+        return -1;
+    } else {
+        return c;
+    }
+}
+
+int parse_token()
 {
     return 0;
 }
 
 int main(int argc, char **argv)
 {
-    int ifd, ofd;
     struct stat st;
 
     if (argc != 2) {
@@ -141,6 +154,11 @@ int main(int argc, char **argv)
         exit(-1);
     }   
 
-    parse_token(ifd);
+    if (fstat(ifd, &st) == -1) {
+        perror("fstat");
+        exit(-1);
+    }
+
+    parse_token();
     return 0;
 }
