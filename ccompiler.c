@@ -63,6 +63,7 @@ struct __token__ {
 };
 
 int ifd, ofd;
+int ioffset = 0;
 
 struct __token__ id_token_pool[POOL_SIZE];
 
@@ -110,6 +111,31 @@ struct __token__ c_token_pool[] = {
     {TOKEN_ID,               "",         0},
 }; 
 
+int is_keyword(char c)
+{
+
+}
+
+int is_type(char c)
+{
+
+}
+
+int is_operator(char c)
+{
+
+}
+
+int is_separator(char c)
+{
+
+}
+
+int is_id(char c)
+{
+
+}
+
 int put_token(int type, int value)
 {
     return 0;
@@ -126,12 +152,24 @@ char get_char()
     if (read(ifd, &c, 1) == 0) {
         return -1;
     } else {
+        ioffset++;
         return c;
     }
 }
 
+void unget_char()
+{
+    ioffset--;
+    lseek(ifd, ioffset, SEEK_SET);
+}
+
 int parse_token()
 {
+    char c;
+
+    c = get_char();
+    while (c != -1) {
+    }
     return 0;
 }
 
