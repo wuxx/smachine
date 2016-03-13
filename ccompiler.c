@@ -109,6 +109,7 @@ struct __token__ c_token_pool[] = {
     {TOKEN_SP_COMMA,         ",",        0},
 
     {TOKEN_ID,               "",         0},
+    {TOKEN_NUM,              "",         0},
 }; 
 
 int is_keyword(char c)
@@ -131,9 +132,27 @@ int is_separator(char c)
 
 }
 
-int is_id(char c)
+int is_id_head(char c)
 {
+    if ((c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        (c = '_') ) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
 
+int is_id_body(char c)
+{
+    if ((c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') ||
+        (c = '_') ) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 int put_token(int type, int value)
@@ -167,8 +186,60 @@ int parse_token()
 {
     char c;
 
+    {TOKEN_OP_PLUS,          "+",        0},
+    {TOKEN_OP_SUB,           "-",        0},
+    {TOKEN_OP_MUL,           "*",        0},
+    {TOKEN_OP_DIV,           "/",        0},
+    {TOKEN_OP_EQ,            "=",        0},
+    {TOKEN_OP_EM,            "!",        0},
+    {TOKEN_OP_TILDE,         "~",        0},
+    {TOKEN_OP_OR,            "|",        0},
+    {TOKEN_OP_XOR,           "^",        0},
+    {TOKEN_OP_PERCENT,       "%",        0},
+    {TOKEN_OP_ADDR,          "&",        0},
+    {TOKEN_OP_LAND,          "&&",       0},
+    {TOKEN_OP_LOR,           "||",       0},
+    {TOKEN_OP_PP,            "++",       0},
+    {TOKEN_OP_SS,            "--",       0},
+    {TOKEN_OP_EE,            "==",       0},
+    {TOKEN_OP_LT,            "<",        0},
+    {TOKEN_OP_GT,            ">",        0},
+    {TOKEN_OP_LE,            "<=",       0},
+    {TOKEN_OP_GE,            ">=",       0},
+
+    {TOKEN_SP_LCURBRACE,     "{",        0},
+    {TOKEN_SP_RCURBRACE,     "}",        0},
+    {TOKEN_SP_LSQRBRACKET,   "[",        0},
+    {TOKEN_SP_RSQRBRACKET,   "]",        0},
+    {TOKEN_SP_LRNDBRACKET,   "(",        0},
+    {TOKEN_SP_RRNDBRACKET,   ")",        0},
+    {TOKEN_SP_SEMICOLON,     ";",        0},
+    {TOKEN_SP_COMMA,         ",",        0},
     c = get_char();
     while (c != -1) {
+        if (is_id_head(c)) {        /* keyword id, type id, or user-defined id */
+
+        } else if (c == '+') {      /* "+" or "++" */
+        } else if (c == '-') {      /* "-" or "--" */
+        } else if (c == '*') {
+        } else if (c == '/') {
+        } else if (c == '=') {      /* "=" or "==" */
+        } else if (c == '~') {
+        } else if (c == '|') {      /* "|" or "||" */
+        } else if (c == '^') {
+        } else if (c == '%') {
+        } else if (c == '&') {      /* "&" or "&&" */
+        } else if (c == '<') {      /* "<" or "<=" */
+        } else if (c == '>') {      /* ">" or ">=" */
+        } else if (c == '{') {
+        } else if (c == '}') {
+        } else if (c == '[') {
+        } else if (c == ']') {
+        } else if (c == '(') {
+        } else if (c == ')') {
+        } else if (c == ';') {
+        } else if (c == ',') {
+        }
     }
     return 0;
 }
