@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <sys/types.h>
@@ -11,7 +12,8 @@
 #define POOL_SIZE (10240)
 
 enum TOKEN_TYPE_E {
-    TOKEN_KW_IF = 0,         
+    TOKEN_NULL = 0,         
+    TOKEN_KW_IF,
     TOKEN_KW_ELSE,       
     TOKEN_KW_WHILE,      
     TOKEN_KW_FOR,        
@@ -65,11 +67,16 @@ struct __token__ {
 };
 
 int ifd, ofd;
-int ioffset = 0;
+int ifoffset = 0;
 
-struct __token__ id_token_pool[POOL_SIZE];
+int id_index = 0;
+char * id_pool[POOL_SIZE];
+
+int tk_index = 0;
+struct __token__ token_pool[POOL_SIZE];
 
 struct __token__ c_token_pool[] = {
+    {TOKEN_NULL,             "",         0},
     {TOKEN_KW_IF,            "if",       0},
     {TOKEN_KW_ELSE,          "else",     0},
     {TOKEN_KW_WHILE,         "while",    0},
@@ -116,9 +123,15 @@ struct __token__ c_token_pool[] = {
     {TOKEN_NUM,              "",         0},
 }; 
 
-int is_keyword(char c)
+int is_keyword(char *id)
 {
-
+    int i;
+    for(i=0;i<(sizeof(c_token_pool)/sizeof(c_token_pool[0]));i++) {
+        if (strcmp(c_token_pool[i].t, id) == 0) {
+            return i;
+        }
+    }
+    return 0;
 }
 
 int is_type(char c)
@@ -171,11 +184,25 @@ int is_id_body(char c)
 
 int put_token(int type, int value)
 {
+    token_pool[tk_index++].type  = type;
+    token_pool[tk_index++].value = value;
+    assert(tk_index < POOL_SIZE);
     return 0;
 }
 
-int put_id(char *id, int len)
+int put_id(char *id)
 {
+    int len;
+    char *dst, *src;
+
+    id_pool[id_index] = (char *)malloc(len+1);
+
+    dst = id_pool[id_index];
+    src = id;
+    len = strlen(id);
+    memcpy(dst, id, len);
+    dst[len] = '\0';
+    
     return 0;
 }
 
@@ -185,25 +212,50 @@ char get_char()
     if (read(ifd, &c, 1) == 0) {
         return -1;
     } else {
-        ioffset++;
+        ifoffset++;
         return c;
     }
 }
 
 void unget_char()
 {
-    ioffset--;
-    lseek(ifd, ioffset, SEEK_SET);
+    ifoffset--;
+    lseek(ifd, ifoffset, SEEK_SET);
 }
 
 int parse_token()
 {
     char c, cn;
+    int i, sum;
+    char id[20];
+
     c = get_char();
     while (c != -1) {
         if (is_id_head(c)) {        /* keyword id, type id, or user-defined id */
+            i = 0;
+            id[i++] = c;
+            c = get_char();
+            while (is_id_body(c)) {
+                id[i++] = c;
+                c = get_char();
+            }
+            unget_char();
+            id[i] = '\0';
+            if ((i=is_keyword(id))) {
+                put_token(i, 0);
+            } else {
+                i = put_id(id);
+                put_token(TOKEN_ID, i);
+            }
 
         } else if (is_digit(c)) {
+            sum = 0;
+            while (is_digit(c)) {
+                sum = sum * 10 + (c - '0');
+                c = get_char();
+            }
+            unget_char();
+            put_token(TOKEN_NUM, sum);
         } else if (c == '+') {      /* "+" or "++" */
             if ((cn = get_char()) == '+') {
                 put_token(TOKEN_OP_PP, 0);
