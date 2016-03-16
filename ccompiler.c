@@ -19,6 +19,7 @@ enum TOKEN_TYPE_E {
     TOKEN_KW_FOR,        
     TOKEN_KW_DO,         
     TOKEN_KW_RETURN,     
+    TOKEN_KW_MAIN,
 
     TOKEN_TP_VOID,       
     TOKEN_TP_INT,        
@@ -60,6 +61,56 @@ enum TOKEN_TYPE_E {
     TOKEN_MAX,
 }; 
 
+char * tk_desc[] = {
+    "TOKEN_NULL",         
+    "TOKEN_KW_IF",
+    "TOKEN_KW_ELSE",       
+    "TOKEN_KW_WHILE",      
+    "TOKEN_KW_FOR",        
+    "TOKEN_KW_DO",         
+    "TOKEN_KW_RETURN",     
+    "TOKEN_KW_MAIN",
+
+    "TOKEN_TP_VOID",       
+    "TOKEN_TP_INT",        
+    "TOKEN_TP_CHAR",       
+    "TOKEN_TP_ENUM",       
+
+    "TOKEN_OP_PLUS",       
+    "TOKEN_OP_SUB",        
+    "TOKEN_OP_MUL",        
+    "TOKEN_OP_DIV",        
+    "TOKEN_OP_EQ",         
+    "TOKEN_OP_EM",         
+    "TOKEN_OP_TILDE",      
+    "TOKEN_OP_XOR",        
+    "TOKEN_OP_PERCENT",    
+    "TOKEN_OP_ADDR",       
+    "TOKEN_OP_LAND",       
+    "TOKEN_OP_OR",         
+    "TOKEN_OP_LOR",        
+    "TOKEN_OP_PP",         
+    "TOKEN_OP_SS",         
+    "TOKEN_OP_EE",         
+    "TOKEN_OP_LT",         
+    "TOKEN_OP_GT",         
+    "TOKEN_OP_LE",         
+    "TOKEN_OP_GE",         
+
+    "TOKEN_SP_LCURBRACE",  
+    "TOKEN_SP_RCURBRACE",  
+    "TOKEN_SP_LSQRBRACKET",
+    "TOKEN_SP_RSQRBRACKET",
+    "TOKEN_SP_LRNDBRACKET",
+    "TOKEN_SP_RRNDBRACKET",
+    "TOKEN_SP_SEMICOLON",  
+    "TOKEN_SP_COMMA",      
+
+    "TOKEN_ID",            
+    "TOKEN_NUM",           
+    "TOKEN_MAX",
+}; 
+
 struct __token__ {
     int   type;
     char *t;
@@ -83,6 +134,7 @@ struct __token__ c_token_pool[] = {
     {TOKEN_KW_FOR,           "for",      0},
     {TOKEN_KW_DO,            "do",       0},
     {TOKEN_KW_RETURN,        "return",   0},
+    {TOKEN_KW_MAIN,          "main",     0},
 
     {TOKEN_TP_VOID,          "void",     0},
     {TOKEN_TP_INT,           "int",      0},
@@ -163,7 +215,7 @@ int is_id_head(char c)
 {
     if ((c >= 'a' && c <= 'z') ||
         (c >= 'A' && c <= 'Z') ||
-        (c = '_') ) {
+        (c == '_') ) {
         return 1;
     } else {
         return 0;
@@ -175,7 +227,7 @@ int is_id_body(char c)
     if ((c >= 'a' && c <= 'z') ||
         (c >= 'A' && c <= 'Z') ||
         (c >= '0' && c <= '9') ||
-        (c = '_') ) {
+        (c == '_') ) {
         return 1;
     } else {
         return 0;
@@ -184,6 +236,7 @@ int is_id_body(char c)
 
 int put_token(int type, int value)
 {
+    DEBUG("put_token: [%s][%d]\n", tk_desc[type], value);
     token_pool[tk_index++].type  = type;
     token_pool[tk_index++].value = value;
     assert(tk_index < POOL_SIZE);
@@ -195,14 +248,20 @@ int put_id(char *id)
     int len;
     char *dst, *src;
 
-    id_pool[id_index] = (char *)malloc(len+1);
+    len = strlen(id);
+
+    DEBUG("put_id: [%s] [%d]\n", id, len);
+    if ((id_pool[id_index] = (char *)malloc(len+1)) == NULL) {
+        perror("malloc");
+        exit(-1);
+    }
 
     dst = id_pool[id_index];
     src = id;
-    len = strlen(id);
-    memcpy(dst, id, len);
+    DEBUG("%x %x %x \n", dst, src, len);
+    memcpy(dst, src, len);
     dst[len] = '\0';
-    
+    id_index++;
     return 0;
 }
 
@@ -210,7 +269,7 @@ char get_char()
 {
     char c;
     if (read(ifd, &c, 1) == 0) {
-        return -1;
+        return 0xff;
     } else {
         ifoffset++;
         return c;
@@ -229,8 +288,8 @@ int parse_token()
     int i, sum;
     char id[20];
 
-    c = get_char();
-    while (c != -1) {
+    while ((c = get_char()) != 0xff) {
+        DEBUG("c: [%c] \n", c);
         if (is_id_head(c)) {        /* keyword id, type id, or user-defined id */
             i = 0;
             id[i++] = c;
@@ -243,7 +302,7 @@ int parse_token()
             id[i] = '\0';
             if ((i=is_keyword(id))) {
                 put_token(i, 0);
-            } else {
+            } else {    /* id */
                 i = put_id(id);
                 put_token(TOKEN_ID, i);
             }
@@ -331,7 +390,10 @@ int parse_token()
             put_token(TOKEN_SP_SEMICOLON, 0);
         } else if (c == ',') {
             put_token(TOKEN_SP_COMMA, 0);
+        } else if (c == ' ' || c == '\n' || c == '\t'){
+            
         } else {
+            DEBUG("c [%x] [%d]\n", c, c);
             error();
         }
     }
@@ -342,7 +404,7 @@ int main(int argc, char **argv)
 {
     struct stat st;
 
-    if (argc != 2) {
+    if (argc != 3) {
         printf("%s [foo.c] [bar.bin]\n", argv[0]);
         exit(-1);
     }

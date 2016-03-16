@@ -9,12 +9,6 @@
 
 #include "cpu.h"
 
-#if 1
-#define DEBUG(fmt, ...)     printf("[%s][%d]" fmt,  __func__, __LINE__, ##__VA_ARGS__)
-#else
-#define DEBUG(fmt, ...)
-#endif
-
 /*
    the assembler of smachine
 */
@@ -198,7 +192,7 @@ s32 put_id(char *s, u32 len)
         }
     }
 
-    id_pool[iindex].buf = malloc(len+1);
+    id_pool[iindex].buf = (char *)malloc(len+1);
     memcpy(id_pool[iindex].buf, s, len);
     id_pool[iindex].buf[len] = '\0';
 

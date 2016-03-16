@@ -6,6 +6,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#if 1
+#define DEBUG(fmt, ...)     printf("[%s][%d]" fmt,  __func__, __LINE__, ##__VA_ARGS__)
+#else
+#define DEBUG(fmt, ...)
+#endif
+
 #define error() do { \
                     printf("error: [%s][%d]\n", __func__, __LINE__);  \
                     exit(-1); \
