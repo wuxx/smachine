@@ -124,7 +124,7 @@ int id_index = 0;
 char * id_pool[POOL_SIZE];
 
 int tk_index = 0;
-struct __token__ token_pool[POOL_SIZE];
+struct __token__ token_pool[POOL_SIZE] = {{0, NULL, 0}};
 
 struct __token__ c_token_pool[] = {
     {TOKEN_NULL,             "",         0},
@@ -167,7 +167,7 @@ struct __token__ c_token_pool[] = {
     {TOKEN_SP_LSQRBRACKET,   "[",        0},
     {TOKEN_SP_RSQRBRACKET,   "]",        0},
     {TOKEN_SP_LRNDBRACKET,   "(",        0},
-    {TOKEN_SP_RRNDBRACKET,   "(",        0},
+    {TOKEN_SP_RRNDBRACKET,   ")",        0},
     {TOKEN_SP_SEMICOLON,     ";",        0},
     {TOKEN_SP_COMMA,         ",",        0},
 
@@ -236,8 +236,8 @@ int is_id_body(char c)
 
 int put_token(int type, int value)
 {
-    DEBUG("put_token: [%s][%d]\n", tk_desc[type], value);
-    token_pool[tk_index++].type  = type;
+    DEBUG("put_token[%d]: [%s][%d]\n", tk_index, tk_desc[type], value);
+    token_pool[tk_index].type    = type;
     token_pool[tk_index++].value = value;
     assert(tk_index < POOL_SIZE);
     return 0;
@@ -262,7 +262,7 @@ int put_id(char *id)
     memcpy(dst, src, len);
     dst[len] = '\0';
     id_index++;
-    return 0;
+    return id_index - 1;
 }
 
 char get_char()
@@ -400,6 +400,28 @@ int parse_token()
     return 0;
 }
 
+void dump_token()
+{
+    int i = 0;
+    while (token_pool[i].type != TOKEN_NULL) {
+        printf("[%d]:", i);
+        switch (token_pool[i].type) {
+            case (TOKEN_ID):
+                printf("[%s]\n", id_pool[token_pool[i].value]);
+                break;
+            case (TOKEN_NUM):
+                printf("[%d]\n", token_pool[i].value);
+                break;
+
+            default:
+                printf("[%s]\n", c_token_pool[token_pool[i].type].t);
+                break;
+        }
+
+        i++;
+    }
+}
+
 int main(int argc, char **argv)
 {
     struct stat st;
@@ -425,5 +447,6 @@ int main(int argc, char **argv)
     }
 
     parse_token();
+    dump_token();
     return 0;
 }
