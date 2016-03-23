@@ -122,6 +122,6 @@ typedef void (*op_handler)(struct __instruction__ *inst);
 struct __instruction_set__ {
     char *desc;
     u32 op_type;
-    op_handler hander;
+    op_handler handler;
 };
 

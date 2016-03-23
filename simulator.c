@@ -507,7 +507,7 @@ void cpu_run()
 
     /* ID, EX */
     assert((i = is_legal(pinst)) != -1);
-    is[i].hander(pinst);
+    is[i].handler(pinst);
 }
 
 void dump_regs()

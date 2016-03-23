@@ -126,6 +126,8 @@ char * id_pool[POOL_SIZE];
 int tk_index = 0;
 struct __token__ token_pool[POOL_SIZE] = {{0, NULL, 0}};
 
+struct __token__ * ptoken = NULL;
+
 struct __token__ c_token_pool[] = {
     {TOKEN_NULL,             "",         0},
     {TOKEN_KW_IF,            "if",       0},
@@ -400,6 +402,15 @@ int parse_token()
     return 0;
 }
 
+struct __token__ * get_token()
+{
+    if (token_pool[tk_index].type != TOKEN_NULL) {
+        return &token_pool[tk_index];
+    } else {
+        return NULL;
+    }
+}
+
 void dump_token()
 {
     int i = 0;
@@ -420,6 +431,40 @@ void dump_token()
 
         i++;
     }
+}
+
+/* format:
+   1. if () {}
+   2. if () {} [else if() {}]* [else {}]*
+*/
+int stat_if()
+{
+    return 0;
+}
+
+/* format:
+    while() {}
+*/
+int stat_while()
+{
+    return 0;
+}
+
+/* format:
+    for(st1;st2;st3;) {}
+*/
+int stat_for()
+{
+    return 0;
+}
+
+/* format:
+   1. op = expr;
+   2. expr
+*/
+int expr()
+{
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -447,6 +492,8 @@ int main(int argc, char **argv)
     }
 
     parse_token();
+    tk_index = 0;
+    ptoken = get_token();
     dump_token();
     return 0;
 }
