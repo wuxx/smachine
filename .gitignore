@@ -2,3 +2,4 @@ simulator
 assembler
 ccompiler
 tags
+*.bin

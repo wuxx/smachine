@@ -13,10 +13,11 @@ all: $(SMSIM) $(SMAS) $(SMCC)
 	gcc $(CFLAGS) $(SMCC).c  -o $(SMCC)
 
 test:
-	./$(SMAS) test.s bar.bin
+	./$(SMAS) test.s test.bin
+	./$(SMAS) sum.s  sum.bin
 
 tags:
 	ctags -R .
 
 clean:	
-	rm -f $(SMSIM) $(SMAS) $(SMCC) tags bar.bin
+	rm -f $(SMSIM) $(SMAS) $(SMCC) tags *.bin
