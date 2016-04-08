@@ -44,6 +44,11 @@ struct __id__ {
     s32 addr;
 };
 
+struct __patch__ {
+    u32 addr;   /* the addr need to be patch */
+    u32 index;  /* index in id_pool */
+};
+
 enum KEYWORD_E {
     KW_INVALID = 0,
     KW_MOV,  KW_LDR,  KW_STR,
@@ -72,8 +77,9 @@ char *keyword[] = { "NULL",
 u32 cpu_addr = 0;
 u8  cpu_mem[MEM_SIZE] = {0}; 
 u32 tindex = 0, iindex = 0; /* token index, id index */
-struct __token__ token_pool[POOL_SIZE];
-struct __id__    id_pool[POOL_SIZE];
+struct __token__ tk_pool[POOL_SIZE] = {{0,    0}};
+struct __id__    id_pool[POOL_SIZE] = {{NULL, 0}};
+struct __patch__ pt_pool[POOL_SIZE] = {{0,    0}};
 
 u32 _atoi(char *str)
 {
@@ -175,8 +181,8 @@ s32 is_keyword(char *s, u32 len)
 
 s32 put_token(u32 _type, u32 _value)
 {
-    token_pool[tindex].type  = _type;
-    token_pool[tindex].value = _value;
+    tk_pool[tindex].type  = _type;
+    tk_pool[tindex].value = _value;
     tindex++;
 
     assert(tindex < POOL_SIZE);
@@ -192,7 +198,7 @@ s32 put_id(char *s, u32 len)
         }
     }
 
-    id_pool[iindex].buf = (char *)malloc(len+1);
+    id_pool[iindex].buf = (char *)malloc(len+1);    /* FIXME: free it at the end */
     memcpy(id_pool[iindex].buf, s, len);
     id_pool[iindex].buf[len] = '\0';
 
@@ -305,12 +311,12 @@ s32 dump_token()
 {
     u32 i;
     for(i=0;i<POOL_SIZE;i++) {
-        if (token_pool[i].type != TOKEN_INVALID) {
-            printf("[%d]: [%s] ", i, type_desc[token_pool[i].type & 0xFFFF]);
-            if ((token_pool[i].type & 0xFFFF) == TOKEN_KEYWORD) {
-                printf("%s \n", keyword[token_pool[i].value]);
+        if (tk_pool[i].type != TOKEN_INVALID) {
+            printf("[%d]: [%s] ", i, type_desc[tk_pool[i].type & 0xFFFF]);
+            if ((tk_pool[i].type & 0xFFFF) == TOKEN_KEYWORD) {
+                printf("%s \n", keyword[tk_pool[i].value]);
             } else {
-                printf("0x%x (%d)\n", token_pool[i].value, token_pool[i].value);
+                printf("0x%x (%d)\n", tk_pool[i].value, tk_pool[i].value);
             }
         }
     }
@@ -346,7 +352,7 @@ s32 put_word(u32 word)
 u32 get_operand(u32 index)
 {
     u32 operand;
-    switch (token_pool[index].value) {
+    switch (tk_pool[index].value) {
         case (KW_R0):
             operand = 0;
             break;
@@ -366,7 +372,7 @@ u32 get_operand(u32 index)
             operand = 3;
             break;
         default:
-            printf("%d error value %d \n",  __LINE__, token_pool[index].value);
+            printf("%d error value %d \n",  __LINE__, tk_pool[index].value);
             error();
             break;
     }
@@ -384,13 +390,13 @@ s32 op_mov()
     am_dst = AM_REG_DIRECT;
     dst    = get_operand(tindex+1);
 
-    assert(token_pool[tindex+2].type == TOKEN_COMMA);
+    assert(tk_pool[tindex+2].type == TOKEN_COMMA);
 
     /* src1 */
-    if (token_pool[tindex+3].type == TOKEN_IMM) {
+    if (tk_pool[tindex+3].type == TOKEN_IMM) {
         am_src1 = AM_IMM;
         src1    = 0;
-        imm     = token_pool[tindex+3].value;
+        imm     = tk_pool[tindex+3].value;
     } else {
         am_src1 = AM_REG_DIRECT;
         src1 = get_operand(tindex+3);
@@ -417,8 +423,8 @@ s32 op_ldr()
     am_dst = AM_REG_DIRECT;
     dst    = get_operand(tindex+1);
 
-    assert(token_pool[tindex+2].type == TOKEN_COMMA);
-    assert((token_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
+    assert(tk_pool[tindex+2].type == TOKEN_COMMA);
+    assert((tk_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
 
     am_src1 = AM_REG_INDIRECT;
     src1    = get_operand(tindex+3);
@@ -440,9 +446,9 @@ s32 op_str()
     am_src1 = AM_REG_DIRECT;
     src1    = get_operand(tindex+1);
 
-    assert(token_pool[tindex+2].type == TOKEN_COMMA);
+    assert(tk_pool[tindex+2].type == TOKEN_COMMA);
 
-    assert((token_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
+    assert((tk_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
 
     am_dst  = AM_REG_INDIRECT;
     dst     = get_operand(tindex+3);
@@ -572,17 +578,17 @@ s32 op_al(u32 type)
     am_dst  = AM_REG_DIRECT;
     dst     = get_operand(tindex+1);
 
-    assert(token_pool[tindex+2].type == TOKEN_COMMA);
+    assert(tk_pool[tindex+2].type == TOKEN_COMMA);
 
     am_src1 = AM_REG_DIRECT;
     src1    = get_operand(tindex+3);
 
-    assert(token_pool[tindex+4].type == TOKEN_COMMA);
-    switch (token_pool[tindex+5].type) {
+    assert(tk_pool[tindex+4].type == TOKEN_COMMA);
+    switch (tk_pool[tindex+5].type) {
         case (TOKEN_IMM):
             am_src2 = AM_IMM;
             src2    = 0;
-            imm     = token_pool[tindex+5].value;
+            imm     = tk_pool[tindex+5].value;
             break;
         case (TOKEN_KEYWORD):
             am_src2 = AM_REG_DIRECT;
@@ -635,17 +641,17 @@ s32 op_jmp(u32 type)
     am_dst  = AM_REG_DIRECT;
     dst     = 3; /* PC */
 
-    if (token_pool[tindex+1].type == TOKEN_IMM) {
+    if (tk_pool[tindex+1].type == TOKEN_IMM) {
         src1    = 0;
         am_src1 = AM_IMM;
-        imm     = token_pool[tindex+1].value;
-    } else if (token_pool[tindex+1].type == TOKEN_KEYWORD) {
+        imm     = tk_pool[tindex+1].value;
+    } else if (tk_pool[tindex+1].type == TOKEN_KEYWORD) {
         am_src1 = AM_REG_DIRECT;
         src1    = get_operand(tindex+1);
-    }  else if (token_pool[tindex+1].type == TOKEN_ID) {
+    }  else if (tk_pool[tindex+1].type == TOKEN_ID) {
         src1    = 0;
         am_src1 = AM_IMM;
-        imm     = id_pool[token_pool[tindex+1].value].addr;
+        imm     = id_pool[tk_pool[tindex+1].value].addr;
     }
 
     am_src2 = 0;
@@ -663,8 +669,8 @@ s32 op_jmp(u32 type)
 /* pseudo instruction */
 s32 op_locate()
 {
-    assert(token_pool[tindex+1].type == TOKEN_IMM);
-    cpu_addr = token_pool[tindex+1].value;
+    assert(tk_pool[tindex+1].type == TOKEN_IMM);
+    cpu_addr = tk_pool[tindex+1].value;
     assert(cpu_addr < MEM_SIZE && (cpu_addr % 4 == 0));
     tindex += 2;
 }
@@ -674,26 +680,26 @@ s32 gen_code()
     u32 i;
     s32 op_type = -1;
     for(tindex=0;tindex<POOL_SIZE;) {
-        DEBUG(" %d type: %s; value: %d\n", tindex, type_desc[token_pool[tindex].type], token_pool[tindex].value);
+        DEBUG(" %d type: %s; value: %d\n", tindex, type_desc[tk_pool[tindex].type], tk_pool[tindex].value);
 
-        switch (token_pool[tindex].type) {
+        switch (tk_pool[tindex].type) {
             case (TOKEN_INVALID):
                 return 0;
             case (TOKEN_COMMA):
             case (TOKEN_IMM):
                 error();
             case (TOKEN_ID):
-                i = token_pool[tindex].value;
+                i = tk_pool[tindex].value;   /* offset in id_pool */
                 assert(id_pool[i].addr == -1);
 
                 id_pool[i].addr = cpu_addr;
                 printf("[%s]: 0x%08x\n", id_pool[i].buf, cpu_addr);
-                assert(token_pool[tindex+1].type ==TOKEN_COLON);
+                assert(tk_pool[tindex+1].type ==TOKEN_COLON);
                 tindex += 2;
                 break;
 
             case (TOKEN_KEYWORD):
-                switch (token_pool[tindex].value)  {
+                switch (tk_pool[tindex].value)  {
                     case (KW_MOV):
                         op_mov();
                         break;
@@ -723,7 +729,7 @@ s32 gen_code()
                     case (KW_AND):
                     case (KW_OR):
                     case (KW_XOR):
-                        op_al(token_pool[tindex].value);
+                        op_al(tk_pool[tindex].value);
                         break;
 
                     case (KW_JMP):
@@ -733,7 +739,7 @@ s32 gen_code()
                     case (KW_JMPNN):
                     case (KW_JMPNZ):
                     case (KW_JMPNO):
-                        op_jmp(token_pool[tindex].value);
+                        op_jmp(tk_pool[tindex].value);
                         break;
                     case (KW_LOCATE):
                         op_locate();
@@ -760,6 +766,8 @@ s32 dump_cpu_mem()
 
 int main(int argc, char **argv)
 {
+    u32 i;
+
     int ofd;
     if (argc != 3) {
         printf("%s [foo.s] [bar.bin]\n", argv[0]);
@@ -768,6 +776,16 @@ int main(int argc, char **argv)
 
     if ((ofd = open(argv[2], O_RDWR | O_CREAT | O_TRUNC, 0664)) == -1) {
         perror("open");
+    }
+    for(i=0;i<POOL_SIZE;i++) {
+        tk_pool[i].type  = TOKEN_INVALID;
+        tk_pool[i].value = 0;
+
+        id_pool[i].buf   = NULL;
+        id_pool[i].addr  = 0xFFFFFFFF;
+
+        pt_pool[i].addr  = 0;
+        pt_pool[i].index = 0;
     }
 
     parse_token(argv[1]);

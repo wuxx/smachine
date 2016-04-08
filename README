@@ -1,6 +1,7 @@
 simple 32-bit risc cpu
 
-include the simulator, assembler, ccompiler
+include the simulator, assembler, ccompiler, just for fun. :)
+
 cpu state machine: 
 while (1) {
     instruction fetch;

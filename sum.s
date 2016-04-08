@@ -1,5 +1,5 @@
 LOCATE #0x0
-; caculate 1+2+3+... 100
+; caculate 1+2+3+...+100
 mov r0, #0x1
 mov r1, #0x0
 mov sp, #0x1000
