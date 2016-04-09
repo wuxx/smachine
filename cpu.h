@@ -52,16 +52,16 @@ enum ADDRESS_MODE_E {
 };
 
 enum FLAG_E {
-    FG_NEG  = 0,
-    FG_ZERO = 1,
-    FG_OVFW = 2,
+    FG_NEG_BIT  = 0,
+    FG_ZERO_BIT = 1,
+    FG_OVFW_BIT = 2,
 };
 
 enum OP_TYPE_E {
     OP_DATA_TRANSFER = 0,
     OP_STACK         = 1,
     OP_FUNC_CALL     = 2,
-    OP_ARITHMETIC    = 3,
+    OP_ALU           = 3,
     OP_JMP           = 4,
 };
 
@@ -73,23 +73,23 @@ enum VIC_TABLE_E {
 
 enum SUB_TYPE_E {
 
-    MOV = OP_DATA_TRANSFER << 8 |  0,
-    LDR = OP_DATA_TRANSFER << 8 |  1,
-    STR = OP_DATA_TRANSFER << 8 |  2,
+    MOV   = OP_DATA_TRANSFER << 8 |  0,
+    LDR   = OP_DATA_TRANSFER << 8 |  1,
+    STR   = OP_DATA_TRANSFER << 8 |  2,
 
-    PUSH = OP_STACK << 8 | 3,
-    POP  = OP_STACK << 8 | 4,
+    PUSH  = OP_STACK << 8 | 3,
+    POP   = OP_STACK << 8 | 4,
 
-    CALL = OP_FUNC_CALL << 8 |  5,
-    RET  = OP_FUNC_CALL << 8 |  6,
+    CALL  = OP_FUNC_CALL << 8 |  5,
+    RET   = OP_FUNC_CALL << 8 |  6,
 
-    ADD = OP_ARITHMETIC << 8 |  7,
-    SUB = OP_ARITHMETIC << 8 |  9,
-    DIV = OP_ARITHMETIC << 8 |  8,
-    MUL = OP_ARITHMETIC << 8 | 10,
-    AND = OP_ARITHMETIC << 8 | 11,
-    OR  = OP_ARITHMETIC << 8 | 12,
-    XOR = OP_ARITHMETIC << 8 | 13,
+    ADD   = OP_ALU << 8 |  7,
+    SUB   = OP_ALU << 8 |  9,
+    DIV   = OP_ALU << 8 |  8,
+    MUL   = OP_ALU << 8 | 10,
+    AND   = OP_ALU << 8 | 11,
+    OR    = OP_ALU << 8 | 12,
+    XOR   = OP_ALU << 8 | 13,
 
     JMP   = OP_JMP << 8 | 14,
     JMPN  = OP_JMP << 8 | 15,

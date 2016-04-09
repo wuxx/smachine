@@ -8,7 +8,7 @@ loop:
     add r1, r1, r0
     add r0, r0, #0x1
     push r0
-    xor r0, r0, #0x64 ; 100
+    xor r0, r0, #0x65 ; 101
     jmpz end
     pop  r0
     jmp loop

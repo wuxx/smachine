@@ -113,11 +113,12 @@ void op_push(struct __instruction__ *pinst)
     assert(pinst->dst == RINDEX(SP));
     assert(pinst->am_dst == AM_REG_INDIRECT);
 
+    SP = SP - 4;
+
     addr = SP;
     data = R(pinst->src1);
 
     cpu_write_mem(addr, data);
-    SP = SP - 4;
     PC = PC + 4;
 
 }
@@ -141,10 +142,8 @@ void op_pop(struct __instruction__ *pinst)
     assert(pinst->src2    == 0);
     assert(pinst->am_src2 == 0);
 
-    addr = SP;
-    data = R(pinst->src1);
+    R(pinst->dst) = cpu_read_mem(SP);
 
-    cpu_write_mem(addr, data);
     SP = SP + 4;
     PC = PC + 4;
 
@@ -205,7 +204,7 @@ void op_ret(struct __instruction__ *pinst)
 
 void update_flag(u32 n, u32 z, u32 o)
 {
-    FLAG = n << 0x2 | z << 0x1 | o ; 
+    FLAG = n << FG_NEG_BIT | z << FG_ZERO_BIT | o << FG_OVFW_BIT; 
 }
 
 /* 
@@ -231,7 +230,7 @@ format:
     xor ri, rj, rk
     xor ri, rj, #imm
 */
-void op_al(struct __instruction__ *pinst)
+void op_alu(struct __instruction__ *pinst)
 {
     u32 imm;
     u32 flag_n = 0, flag_z = 0, flag_o = 0;
@@ -324,8 +323,8 @@ void op_al(struct __instruction__ *pinst)
             error();
     }
 
-
-    PC = PC + 4;
+    update_flag(flag_n, flag_z, flag_o);
+    PC   = PC + 4;
 }
 
 /*
@@ -361,64 +360,64 @@ void op_jmp(struct __instruction__ *pinst)
     assert(pinst->src2    == 0);
     assert(pinst->am_src2 == 0);
 
-    if (pinst->am_src1 == AM_REG_DIRECT) {
-        switch (pinst->op_type) {
-            case (JMP):
-                PC = R(pinst->src1);
-                break;
-            case (JMPN):
-                if (get_bit(FLAG, FG_NEG)) {
-                    PC = R(pinst->src1);
-                } else {
-                    PC = PC + 4;
-                }
-                break;
-            case (JMPZ):
-                if (get_bit(FLAG, FG_ZERO)) {
-                    PC = R(pinst->src1);
-                } else {
-                    PC = PC + 4;
-                }
-                break;
-            case (JMPO):
-                if (get_bit(FLAG, FG_OVFW)) {
-                    PC = R(pinst->src1);
-                } else {
-                    PC = PC + 4;
-                }
-                break;
-            case (JMPNN):
-                if (!get_bit(FLAG, FG_NEG)) {
-                    PC = R(pinst->src1);
-                } else {
-                    PC = PC + 4;
-                }
-                break;
-            case (JMPNZ):
-                if (!get_bit(FLAG, FG_ZERO)) {
-                    PC = R(pinst->src1);
-                } else {
-                    PC = PC + 4;
-                }
-                break;
-            case (JMPNO):
-                if (!get_bit(FLAG, FG_OVFW)) {
-                    PC = R(pinst->src1);
-                } else {
-                    PC = PC + 4;
-                }
-                break;
-            default:
-                error();
-        }
-    } else if (pinst->am_src1 == AM_IMM) {
+    assert(pinst->am_src1 == AM_REG_DIRECT || pinst->am_src1 == AM_IMM);
+    if (pinst->am_src1 == AM_IMM) {
         assert(pinst->src1 == 0);
         imm = cpu_read_mem(PC + 4);
         assert(((imm % 4) == 0) && (imm < MEM_SIZE));
-        PC = imm;
-
+        PC = PC + 4;
     } else {
-        error();
+        imm = R(pinst->src1);
+    }
+
+    switch (pinst->op_type) {
+        case (JMP):
+            PC = imm;
+            break;
+        case (JMPN):
+            if (get_bit(FLAG, FG_NEG_BIT)) {
+                PC = imm;
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPZ):
+            if (get_bit(FLAG, FG_ZERO_BIT)) {
+                PC = imm;
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPO):
+            if (get_bit(FLAG, FG_OVFW_BIT)) {
+                PC = imm;
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPNN):
+            if (!get_bit(FLAG, FG_NEG_BIT)) {
+                PC = imm;
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPNZ):
+            if (!get_bit(FLAG, FG_ZERO_BIT)) {
+                PC = imm;
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        case (JMPNO):
+            if (!get_bit(FLAG, FG_OVFW_BIT)) {
+                PC = imm;
+            } else {
+                PC = PC + 4;
+            }
+            break;
+        default:
+            error();
     }
 }
 
@@ -433,13 +432,13 @@ struct __instruction_set__ is[] = {
     {"call",  CALL,  op_call},
     {"ret",   RET,   op_ret},
 
-    {"add",   ADD,   op_al},
-    {"sub",   SUB,   op_al},
-    {"mul",   MUL,   op_al},
-    {"div",   DIV,   op_al},
-    {"and",   AND,   op_al},
-    {"or",    OR,    op_al},
-    {"xor",   XOR,   op_al},
+    {"add",   ADD,   op_alu},
+    {"sub",   SUB,   op_alu},
+    {"mul",   MUL,   op_alu},
+    {"div",   DIV,   op_alu},
+    {"and",   AND,   op_alu},
+    {"or",    OR,    op_alu},
+    {"xor",   XOR,   op_alu},
 
     {"jmp",   JMP,   op_jmp},
     {"jmpn",  JMPN,  op_jmp},

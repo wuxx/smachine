@@ -76,7 +76,7 @@ char *keyword[] = { "NULL",
 
 u32 cpu_addr = 0;
 u8  cpu_mem[MEM_SIZE] = {0}; 
-u32 tindex = 0, iindex = 0; /* token index, id index */
+u32 tindex = 0, iindex = 0, pindex = 0; /* token index, id index, patch index */
 struct __token__ tk_pool[POOL_SIZE] = {{0,    0}};
 struct __id__    id_pool[POOL_SIZE] = {{NULL, 0}};
 struct __patch__ pt_pool[POOL_SIZE] = {{0,    0}};
@@ -177,6 +177,15 @@ s32 is_keyword(char *s, u32 len)
         }
     }
     return 0;
+}
+
+s32 put_patch(u32 _addr, u32 _index)
+{
+    pt_pool[pindex].addr  = _addr;
+    pt_pool[pindex].index = _index;
+    pindex++;
+
+    assert(pindex < POOL_SIZE);
 }
 
 s32 put_token(u32 _type, u32 _value)
@@ -323,8 +332,30 @@ s32 dump_token()
     return 0;
 }
 
+void cpu_write_mem(u32 addr, u32 data)
+{
+    u32 word;
+    assert((addr % 4) == 0); 
+    assert(addr < MEM_SIZE);
+
+    *((u32 *)(&cpu_mem[addr])) = data;
+}
+
+u32 cpu_read_mem(u32 addr)
+{
+    u32 word;
+    printf("%x \n", addr);
+    assert((addr % 4) == 0); 
+    assert(addr < MEM_SIZE);
+    word = *((u32 *)(&cpu_mem[addr]));
+
+    printf("get 0x%08x\n", word);
+    return word;
+}
+
 s32 put_inst(u32 op_type, u32 am_dst, u32 dst, u32 am_src1, u32 src1, u32 am_src2, u32 src2)
 {
+    u32 *pword;
     struct __instruction__ inst;
 
     inst.op_type  = op_type;
@@ -337,7 +368,8 @@ s32 put_inst(u32 op_type, u32 am_dst, u32 dst, u32 am_src1, u32 src1, u32 am_src
     inst.am_dst   = am_dst;
 
     assert(sizeof(inst) == 4);
-    memcpy(&cpu_mem[cpu_addr], &inst, 4);
+    pword = (u32*)(&inst);
+    cpu_write_mem(cpu_addr, *pword);
     cpu_addr += 4;
 
     return 0;
@@ -345,7 +377,7 @@ s32 put_inst(u32 op_type, u32 am_dst, u32 dst, u32 am_src1, u32 src1, u32 am_src
 
 s32 put_word(u32 word)
 {
-    memcpy(&cpu_mem[cpu_addr], &word, 4);
+    cpu_write_mem(cpu_addr, word);
     cpu_addr += 4;
 }
 
@@ -652,6 +684,10 @@ s32 op_jmp(u32 type)
         src1    = 0;
         am_src1 = AM_IMM;
         imm     = id_pool[tk_pool[tindex+1].value].addr;
+        printf("[%s][%s][%d] %x\n", __FILE__, __func__, __LINE__, id_pool[tk_pool[tindex+1].value].buf);
+        if (id_pool[tk_pool[tindex+1].value].addr == 0xFFFFFFFF) { /* need patch */
+            put_patch(cpu_addr+4, tk_pool[tindex+1].value);
+        }
     }
 
     am_src2 = 0;
@@ -764,6 +800,21 @@ s32 dump_cpu_mem()
     return 0;
 }
 
+s32 do_patch()
+{
+    u32 i;
+    u32 _addr, _patch, _iindex;
+    for(i=0;i<pindex;i++) {
+        _addr   = pt_pool[i].addr;
+        _iindex = pt_pool[i].index;
+        _patch  = id_pool[_iindex].addr;
+        assert(id_pool[_iindex].buf != NULL);
+        cpu_write_mem(_addr, _patch);
+        printf("patch [0x%x]:[0x%x]\n", _addr, _patch);
+
+    }
+}
+
 int main(int argc, char **argv)
 {
     u32 i;
@@ -791,6 +842,7 @@ int main(int argc, char **argv)
     parse_token(argv[1]);
     dump_token();
     gen_code();
+    do_patch();
     dump_cpu_mem();
     write(ofd, cpu_mem, sizeof(cpu_mem));
     return 0;

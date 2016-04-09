@@ -8,8 +8,14 @@ CFLAGS = -g
 .PHONY: all tags test
 
 all: $(SMSIM) $(SMAS) $(SMCC)
+
+$(SMSIM):$(SMSIM).c
 	gcc $(CFLAGS) $(SMSIM).c -o $(SMSIM)
+
+$(SMAS):$(SMAS).c
 	gcc $(CFLAGS) $(SMAS).c  -o $(SMAS)
+
+$(SMCC):$(SMCC).c
 	gcc $(CFLAGS) $(SMCC).c  -o $(SMCC)
 
 test:
