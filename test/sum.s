@@ -10,13 +10,14 @@ loop:
     add r0, r0, #0x1
 
     push r0
-    xor r0, r0, #0x64 ; 100
+    xor r0, r0, #101
     jmpz end
     pop  r0
 
     jmp loop
 
 end:
-   pop r0  ; restore r0
+    pop r0  ; r0 -> r1
+    mov r0, r1
 
 halt

@@ -19,11 +19,12 @@ $(SMCC):$(SMCC).c
 	gcc $(CFLAGS) $(SMCC).c  -o $(SMCC)
 
 test:
-	./$(SMAS) test.s test.bin
-	./$(SMAS) sum.s  sum.bin
+	./$(SMAS) test/test.s   test/test.bin
+	./$(SMAS) test/sum.s    test/sum.bin
+	./$(SMAS) test/prime.s  test/prime.bin
 
 tags:
 	ctags -R .
 
 clean:	
-	rm -f $(SMSIM) $(SMAS) $(SMCC) tags *.bin
+	rm -f $(SMSIM) $(SMAS) $(SMCC) tags test/*.bin

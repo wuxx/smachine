@@ -423,7 +423,7 @@ void op_jmp(struct __instruction__ *pinst)
 
 void smachine_exit()
 {
-    printf("smachine exit, cycles: %d;  R0: 0x%08x\n", cpu_cycles, R0);
+    printf("smachine exit, cycles: %d;  R0: 0x%08x (%d)\n", cpu_cycles, R0, R0);
     exit(R0);
 }
 

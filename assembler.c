@@ -202,18 +202,23 @@ s32 put_token(u32 _type, u32 _value)
 s32 put_id(char *s, u32 len)
 {
     u32 i;
+
     for(i=0;i<iindex;i++) {
-        if (strncmp(id_pool[i].buf, s, len-1) == 0) {
+        if (strncmp(id_pool[i].buf, s, len) == 0) {
             return i;
 
         }
     }
 
     id_pool[iindex].buf = (char *)malloc(len+1);    /* FIXME: free it at the end */
+
+    assert(id_pool[iindex].buf != NULL);
+
     memcpy(id_pool[iindex].buf, s, len);
     id_pool[iindex].buf[len] = '\0';
 
     id_pool[iindex].addr = -1;
+
     iindex++;
     assert(iindex < POOL_SIZE);
     return iindex - 1;
@@ -226,7 +231,7 @@ s32 parse_line(char *line)
     u32 start, end, len;
     char c;
     while((c = line[i]) != 0) {
-        DEBUG("%d get [%c] \n", __LINE__, c);
+        DEBUG("get [%c] \n", c);
         if (c == ' ') {
             i++;
         } else if (c == ';') {      /* the comment */
@@ -236,7 +241,7 @@ s32 parse_line(char *line)
             i++;
             while (is_id(c)) {
                 c = line[i++];
-                DEBUG("%d get [%c] \n", __LINE__, c);
+                DEBUG("get [%c] \n", c);
             }
             i--;
             end = i;
@@ -323,14 +328,22 @@ s32 dump_token()
     u32 i;
     for(i=0;i<POOL_SIZE;i++) {
         if (tk_pool[i].type != TOKEN_INVALID) {
-            printf("[%d]: [%s] ", i, type_desc[tk_pool[i].type & 0xFFFF]);
+            DEBUG("[%d]: [%s] ", i, type_desc[tk_pool[i].type & 0xFFFF]);
             if ((tk_pool[i].type & 0xFFFF) == TOKEN_KEYWORD) {
-                printf("%s \n", keyword[tk_pool[i].value]);
+                DEBUG("%s \n", keyword[tk_pool[i].value]);
             } else {
-                printf("0x%x (%d)\n", tk_pool[i].value, tk_pool[i].value);
+                if (tk_pool[i].type == TOKEN_ID) {
+                    DEBUG("(%s)", id_pool[tk_pool[i].value].buf);
+                }
+                DEBUG("0x%x (%d)\n", tk_pool[i].value, tk_pool[i].value);
             }
         }
     }
+
+    for(i=0;i<iindex;i++) {
+        DEBUG("[%d]: [%s]\n", i, id_pool[i].buf);
+    }
+
     return 0;
 }
 
@@ -346,7 +359,7 @@ void cpu_write_mem(u32 addr, u32 data)
 u32 cpu_read_mem(u32 addr)
 {
     u32 word;
-    printf("%x \n", addr);
+    DEBUG("%x \n", addr);
     assert((addr % 4) == 0); 
     assert(addr < MEM_SIZE);
     word = *((u32 *)(&cpu_mem[addr]));
@@ -686,7 +699,7 @@ s32 op_jmp(u32 type)
         src1    = 0;
         am_src1 = AM_IMM;
         imm     = id_pool[tk_pool[tindex+1].value].addr;
-        printf("[%s][%s][%d] %x\n", __FILE__, __func__, __LINE__, id_pool[tk_pool[tindex+1].value].buf);
+        DEBUG("buf: 0x%x\n", id_pool[tk_pool[tindex+1].value].buf);
         if (id_pool[tk_pool[tindex+1].value].addr == 0xFFFFFFFF) { /* need patch */
             put_patch(cpu_addr+4, tk_pool[tindex+1].value);
         }
@@ -739,7 +752,7 @@ s32 gen_code()
                 assert(id_pool[i].addr == -1);
 
                 id_pool[i].addr = cpu_addr;
-                printf("[%s]: 0x%08x\n", id_pool[i].buf, cpu_addr);
+                DEBUG("[%s]: 0x%08x\n", id_pool[i].buf, cpu_addr);
                 assert(tk_pool[tindex+1].type ==TOKEN_COLON);
                 tindex += 2;
                 break;
@@ -808,7 +821,7 @@ s32 dump_cpu_mem()
     p = (u32*)(&cpu_mem[0]);
 
     for(i=0;i<sizeof(cpu_mem)/4;i++) {
-        printf("[0x%08x]: 0x%08x\n", i*4, p[i]);
+        DEBUG("[0x%08x]: 0x%08x\n", i*4, p[i]);
     }
     return 0;
 }
@@ -823,7 +836,7 @@ s32 do_patch()
         _patch  = id_pool[_iindex].addr;
         assert(id_pool[_iindex].buf != NULL);
         cpu_write_mem(_addr, _patch);
-        printf("patch [0x%x]:[0x%x]\n", _addr, _patch);
+        DEBUG("patch [0x%x]:[0x%x]\n", _addr, _patch);
 
     }
 }
@@ -858,5 +871,6 @@ int main(int argc, char **argv)
     do_patch();
     dump_cpu_mem();
     write(ofd, cpu_mem, sizeof(cpu_mem));
+    printf("assemble [%s] ok\n", argv[1]);
     return 0;
 }
