@@ -435,7 +435,8 @@ void dump_token()
 
 /* format:
    1. if () {}
-   2. if () {} [else if() {}]* [else {}]*
+   2. if () {} else {}
+   3. if () {} [else if() {}]* [else {}]
 */
 int stat_if()
 {

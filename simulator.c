@@ -421,6 +421,24 @@ void op_jmp(struct __instruction__ *pinst)
     }
 }
 
+void smachine_exit()
+{
+    printf("smachine exit, cycles: %d;  R0: 0x%08x\n", cpu_cycles, R0);
+    exit(R0);
+}
+
+void op_halt(struct __instruction__ *pinst)
+{
+    assert(pinst->src1    == 0);
+    assert(pinst->am_src1 == 0);
+    assert(pinst->src2    == 0);
+    assert(pinst->am_src2 == 0);
+    assert(pinst->dst     == 0);
+    assert(pinst->am_dst  == 0);
+    smachine_exit(); 
+}
+
+
 struct __instruction_set__ is[] = {
     {"mov",   MOV,   op_mov},
     {"ldr",   LDR,   op_ldr},
@@ -447,6 +465,8 @@ struct __instruction_set__ is[] = {
     {"jmpnn", JMPNN, op_jmp},
     {"jmpnz", JMPNZ, op_jmp},
     {"jmpno", JMPNO, op_jmp},
+
+    {"halt",  HALT,  op_halt},
 };
 
 /* basic sanity check */
@@ -484,12 +504,11 @@ void cpu_write_mem(u32 addr, u32 data)
 u32 cpu_read_mem(u32 addr)
 {
     u32 word;
-    printf("%x \n", addr);
     assert((addr % 4) == 0);
     assert(addr < MEM_SIZE);
     word = *((u32 *)(&cpu_mem[addr]));
 
-    printf("get 0x%08x\n", word);
+    printf("[0x%08x]: 0x%08x\n", addr, word);
     return word;
 }
 
@@ -538,7 +557,6 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    printf("file size: %d \n", st.st_size);
     if ((st.st_size % 4) != 0) {
         printf("%s size not multiple by 4 \n");
         exit(-1);
@@ -551,6 +569,7 @@ int main(int argc, char **argv)
 
     PC = RESET_HANDLER;
     PC = 0x0;
+    printf("smachine start\n");
     while (1) {
         cpu_run();
         dump_regs();

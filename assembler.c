@@ -56,6 +56,7 @@ enum KEYWORD_E {
     KW_CALL, KW_RET,
     KW_ADD,  KW_SUB,  KW_DIV,  KW_MUL,  KW_AND,   KW_OR,    KW_XOR,
     KW_JMP,  KW_JMPN, KW_JMPZ, KW_JMPO, KW_JMPNN, KW_JMPNZ, KW_JMPNO,
+    KW_HALT,
     KW_R0,   KW_R1,   KW_R2,   KW_R3,
     KW_SP, /* ALIAS OF R2 */
     KW_PC, /* ALIAS OF R3 */
@@ -68,6 +69,7 @@ char *keyword[] = { "NULL",
                     "call", "ret",
                     "add",  "sub",  "div",  "mul",  "and",   "or",    "xor",
                     "jmp",  "jmpn", "jmpz", "jmpo", "jmpnn", "jmpnz", "jmpno",
+                    "halt",
                     "r0",   "r1",   "r2",   "r3",
                     "sp", /* alias of r2 */
                     "pc", /* alias of r3 */
@@ -702,6 +704,14 @@ s32 op_jmp(u32 type)
     return 0;
 }
 
+s32 op_halt()
+{
+    u32 op_type = HALT, am_dst = 0, dst = 0, am_src1 = 0, src1 = 0, am_src2 = 0, src2 = 0;
+    put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    tindex += 1;
+    return 0;
+}
+
 /* pseudo instruction */
 s32 op_locate()
 {
@@ -776,6 +786,9 @@ s32 gen_code()
                     case (KW_JMPNZ):
                     case (KW_JMPNO):
                         op_jmp(tk_pool[tindex].value);
+                        break;
+                    case (KW_HALT):
+                        op_halt();
                         break;
                     case (KW_LOCATE):
                         op_locate();

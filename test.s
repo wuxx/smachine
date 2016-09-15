@@ -2,6 +2,7 @@ LOCATE #0x0
 ; comment
 mov r0, #0x1000 ; some comment
 
+halt
 loop:
     jmp loop
 mov r1, r0

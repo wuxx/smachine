@@ -12,11 +12,6 @@
 #define DEBUG(fmt, ...)
 #endif
 
-#define error() do { \
-                    printf("error: [%s][%d]\n", __func__, __LINE__);  \
-                    exit(-1); \
-                } while(0)
-
 #define inst_illegal(pinst)  do { \
                                     printf("[%s][%d] illegal instruction [%x]\n", __func__, __LINE__, *((u32*)pinst));  \
                                     exit(-1); \
@@ -55,6 +50,7 @@ enum FLAG_E {
     FG_NEG_BIT  = 0,
     FG_ZERO_BIT = 1,
     FG_OVFW_BIT = 2,
+    FG_MAX,
 };
 
 enum OP_TYPE_E {
@@ -63,6 +59,7 @@ enum OP_TYPE_E {
     OP_FUNC_CALL     = 2,
     OP_ALU           = 3,
     OP_JMP           = 4,
+    OP_POWER_CTRL    = 5,
 };
 
 enum VIC_TABLE_E {
@@ -98,6 +95,8 @@ enum SUB_TYPE_E {
     JMPNN = OP_JMP << 8 | 18,
     JMPNZ = OP_JMP << 8 | 19,
     JMPNO = OP_JMP << 8 | 20,
+
+    HALT  = OP_POWER_CTRL << 8 | 21,
     
 };
 
