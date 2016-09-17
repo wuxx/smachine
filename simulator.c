@@ -10,7 +10,7 @@
 
 struct __cpu__ cpu = 
 {
-    .r    = {0, 0, 0, 0},
+    .r    = {0, 0, 0, 0, 0},
     .flag = 0,
 };
 
@@ -531,7 +531,7 @@ void cpu_run()
 void dump_regs()
 {
     u32 i;
-    for(i=0;i<4;i++) {
+    for(i=0;i<5;i++) {
         printf("[R%d]: 0x%08x  ", i, R(i));
     }
     printf("[FLAG]: 0x%08x\n", FLAG);

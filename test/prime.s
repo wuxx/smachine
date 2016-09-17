@@ -1,5 +1,5 @@
 LOCATE #0x0
-; check if a num is prime num
+; check if a num is a prime num
 
 mov r1, #30 ;the examined num
 

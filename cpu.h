@@ -26,9 +26,17 @@
 
 #define R0 cpu.r[0]
 #define R1 cpu.r[1]
-#define SP cpu.r[2]
-#define PC cpu.r[3]
+#define R2 cpu.r[2]
+#define R3 cpu.r[3]
+#define R4 cpu.r[4]
+
+/* alias */
+#define FP cpu.r[2]
+#define SP cpu.r[3]
+#define PC cpu.r[4]
+
 #define FLAG (cpu.flag)
+
 #define RINDEX(rx) ((&rx - &cpu.r[0]))
 
 typedef  unsigned char u8;
@@ -101,18 +109,18 @@ enum SUB_TYPE_E {
 };
 
 struct __instruction__ {
-    u32 op_type:  16;
-    u32 reserved:  4;
-    u32 src2:      2;
-    u32 am_src2:   2;
-    u32 src1:      2;
-    u32 am_src1:   2;
-    u32 dst:       2;
+    u32 dst:       3;
     u32 am_dst:    2;
+    u32 src1:      3;
+    u32 am_src1:   2;
+    u32 src2:      3;
+    u32 am_src2:   2;
+    u32 reserved:  1;
+    u32 op_type:  16;
 };
 
 struct __cpu__ {
-    u32 r[4];
+    u32 r[5];
     u32 flag;
 };
 

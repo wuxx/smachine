@@ -57,9 +57,10 @@ enum KEYWORD_E {
     KW_ADD,  KW_SUB,  KW_DIV,  KW_MUL,  KW_AND,   KW_OR,    KW_XOR,
     KW_JMP,  KW_JMPN, KW_JMPZ, KW_JMPO, KW_JMPNN, KW_JMPNZ, KW_JMPNO,
     KW_HALT,
-    KW_R0,   KW_R1,   KW_R2,   KW_R3,
-    KW_SP, /* ALIAS OF R2 */
-    KW_PC, /* ALIAS OF R3 */
+    KW_R0,   KW_R1,   KW_R2,   KW_R3,   KW_R4,
+    KW_FP, /* ALIAS OF R2 */
+    KW_SP, /* ALIAS OF R3 */
+    KW_PC, /* ALIAS OF R4 */
     KW_LOCATE, /* LOCATE THE MEM OF INSTRUCTION */
 };
 
@@ -70,9 +71,10 @@ char *keyword[] = { "NULL",
                     "add",  "sub",  "div",  "mul",  "and",   "or",    "xor",
                     "jmp",  "jmpn", "jmpz", "jmpo", "jmpnn", "jmpnz", "jmpno",
                     "halt",
-                    "r0",   "r1",   "r2",   "r3",
-                    "sp", /* alias of r2 */
-                    "pc", /* alias of r3 */
+                    "r0",   "r1",   "r2",   "r3",   "r4",
+                    "fp", /* alias of r2 */
+                    "sp", /* alias of r3 */
+                    "pc", /* alias of r4 */
                     "LOCATE",   /* locate the mem of instruction */
                     };
 
@@ -82,6 +84,8 @@ u32 tindex = 0, iindex = 0, pindex = 0; /* token index, id index, patch index */
 struct __token__ tk_pool[POOL_SIZE] = {{0,    0}};
 struct __id__    id_pool[POOL_SIZE] = {{NULL, 0}};
 struct __patch__ pt_pool[POOL_SIZE] = {{0,    0}};
+
+struct __cpu__ cpu;
 
 u32 _atoi(char *str)
 {
@@ -320,7 +324,6 @@ s32 parse_token(char *ifile)
     } 
 
     return 0;
-
 }
 
 s32 dump_token()
@@ -401,22 +404,28 @@ u32 get_operand(u32 index)
     u32 operand;
     switch (tk_pool[index].value) {
         case (KW_R0):
-            operand = 0;
+            operand = RINDEX(R0);
             break;
         case (KW_R1):
-            operand = 1;
+            operand = RINDEX(R1);
             break;
         case (KW_R2):
-            operand = 2;
+            operand = RINDEX(R2);
             break;
         case (KW_R3):
-            operand = 3;
+            operand = RINDEX(R3);
+            break;
+        case (KW_R4):
+            operand = RINDEX(R4);
+            break;
+        case (KW_FP):
+            operand = RINDEX(FP);
             break;
         case (KW_SP):
-            operand = 2;
+            operand = RINDEX(SP);
             break;
         case (KW_PC):
-            operand = 3;
+            operand = RINDEX(PC);
             break;
         default:
             printf("%d error value %d \n",  __LINE__, tk_pool[index].value);
@@ -515,7 +524,7 @@ s32 op_push()
     op_type = PUSH;
 
     am_dst  = AM_REG_INDIRECT;
-    dst     = 2; /* SP */
+    dst     = RINDEX(SP); /* SP */
 
     am_src1 = AM_REG_DIRECT;
     src1    = get_operand(tindex+1);
@@ -538,7 +547,7 @@ s32 op_pop()
     dst    = get_operand(tindex+1);
 
     am_src1  = AM_REG_INDIRECT;
-    src1     = 2; /* SP */
+    src1     = RINDEX(SP); /* SP */
 
     am_src2 = 0;
     src2    = 0;
@@ -555,7 +564,7 @@ s32 op_call()
     op_type = CALL;
 
     am_dst  = AM_REG_DIRECT;
-    dst     = 3; /* PC */
+    dst     = RINDEX(PC); /* PC */
 
     am_src1 = AM_REG_DIRECT;
     src1    = get_operand(tindex+1);
@@ -575,10 +584,10 @@ s32 op_ret()
     op_type = RET;
 
     am_dst  = AM_REG_DIRECT;
-    dst     = 3; /* PC */
+    dst     = RINDEX(PC); /* PC */
 
     am_src1 = AM_REG_INDIRECT;
-    src1    = 2; /* SP */
+    src1    = RINDEX(SP); /* SP */
 
     am_src2 = 0;
     src2    = 0;
@@ -686,7 +695,7 @@ s32 op_jmp(u32 type)
     }
 
     am_dst  = AM_REG_DIRECT;
-    dst     = 3; /* PC */
+    dst     = RINDEX(PC); /* PC */
 
     if (tk_pool[tindex+1].type == TOKEN_IMM) {
         src1    = 0;
