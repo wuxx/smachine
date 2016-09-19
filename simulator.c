@@ -51,37 +51,44 @@ void op_mov(struct __instruction__ *pinst)
 
 /*
 format: op dst, src1
-    ldr ri, [rj]
+    ldr ri, [rj, #offset]
+    ldr ri, [rj] (process as ldr ri, [rj, #0])
 */
 void op_ldr(struct __instruction__ *pinst)
 {
     u32 data;
+    u32 offset;
+
     assert(pinst->src2 == 0);
     assert(pinst->am_src2 == 0);
 
     assert(pinst->am_dst == AM_REG_DIRECT);
 
+    offset = cpu_read_mem(PC + 4);
+
     switch (pinst->am_src1) {
         case (AM_REG_INDIRECT):
-            data = cpu_read_mem(R(pinst->src1));
+            data = cpu_read_mem(R(pinst->src1) + offset);
             R(pinst->dst) = data;
-            PC = PC + 4;
             break;
         default:
             inst_illegal(pinst);
             break;
     }
 
-    PC = PC + 4;
+    PC = PC + 8;
 }
 
 /*
 format: op src, dst
-    str ri, [rj] (rj is op_dst, ri is op_src1)
+    str ri, [rj, #offset] (rj is op_dst, ri is op_src1)
+    str ri, [rj]  (process as str ri, [rj, #0])
 */
 void op_str(struct __instruction__ *pinst)
 {
     u32 addr, data;
+    u32 offset;
+
     assert(pinst->src2 == 0);
     assert(pinst->am_src2 == 0);
 
@@ -90,10 +97,11 @@ void op_str(struct __instruction__ *pinst)
 
     addr = R(pinst->dst);
     data = R(pinst->src1);
+    offset = cpu_read_mem(PC + 4);
 
-    cpu_write_mem(addr, data);
+    cpu_write_mem(addr + offset, data);
 
-    PC = PC + 4;
+    PC = PC + 8;
 }
 
 /*
@@ -153,10 +161,12 @@ void op_pop(struct __instruction__ *pinst)
 format: op, src1
     call ri
 equal:
+    push (PC + 4)
     mov pc, ri
 
     call #imm   TODO
 equal:
+    push (PC + 8)
     mov pc #imm
 */
 void op_call(struct __instruction__ *pinst)
@@ -166,15 +176,23 @@ void op_call(struct __instruction__ *pinst)
     assert(pinst->dst == RINDEX(PC));
     assert(pinst->am_dst == AM_REG_DIRECT);
 
-    assert(pinst->am_src1 == AM_REG_DIRECT);
-
     assert(pinst->src2    == 0);
     assert(pinst->am_src2 == 0);
 
-    PC = R(pinst->src1);
-
-    SP = SP + 4;
-    PC = PC + 4;
+    SP = SP - 4;
+    switch (pinst->am_src1) {
+        case (AM_REG_DIRECT):
+            cpu_write_mem(SP, PC + 4);
+            PC = R(pinst->src1);
+            break;
+        case (AM_IMM):
+            cpu_write_mem(SP, PC + 8);
+            PC = cpu_read_mem(PC + 4);
+            break;
+        default:
+            inst_illegal(pinst);
+            break;
+    }
 
 }
 
@@ -531,9 +549,11 @@ void cpu_run()
 void dump_regs()
 {
     u32 i;
-    for(i=0;i<5;i++) {
-        printf("[R%d]: 0x%08x  ", i, R(i));
-    }
+    printf("[R0]: 0x%08x  ", R(0));
+    printf("[R1]: 0x%08x  ", R(1));
+    printf("[FP]: 0x%08x  ", R(2));
+    printf("[SP]: 0x%08x  ", R(3));
+    printf("[PC]: 0x%08x  ", R(4));
     printf("[FLAG]: 0x%08x\n", FLAG);
 }
 

@@ -7,7 +7,7 @@ while (1) {
     instruction fetch;
     instruction decode;
     instruction execute;
-    pc = pc + 4 (if not imm addressing, no jmp)
+    pc = pc + 4 (if not imm addressing, no call, jmp)
 }
 
 vector table:
@@ -18,8 +18,9 @@ vector table:
 the cpu have only 5 registers: r0 r1 r2(sp) r3(pc) flags
 
 r0, r1 : general purpose registers
-r2(sp) : the stack pointer register
-r3(pc) : the program counter register
+r2(fp) : the frame pointer register
+r3(sp) : the stack pointer register
+r4(pc) : the program counter register
 flags  : cpu status register include (negative zero overflow)
 
 it's a arm-like cpu, base on load store architecture, 
@@ -31,9 +32,14 @@ argx
 ...
 arg2
 arg1
-return address <- r1 (as the frame pointer)
-local vars
+return address
+local varx
+...
+local var2
+local var1
+old fp         <- new fp
 ===========
+sub function can use r0, r1 freely, use r0 as return value.
 
 #instruction type
 

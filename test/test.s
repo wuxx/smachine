@@ -9,6 +9,8 @@ mov r1, r0
 mov r1, r0
 ldr r0, [r1]
 str r0, [r1]
+ldr r0, [r1, #0x10]
+str r0, [r1, #4]
 mov r2, #0x2000
 push r0
 pop  r0

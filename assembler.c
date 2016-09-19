@@ -156,7 +156,8 @@ s32 is_id(char c)
 {
     if ((c >= 'a' && c <= 'z') || 
         (c >= 'A' && c <= 'Z') || 
-        (c >= '0' && c <= '9')) {
+        (c >= '0' && c <= '9') ||
+         c == '_') {
         return 1;
     } else {
         return 0;
@@ -280,14 +281,52 @@ s32 parse_line(char *line)
 
         } else if (c == '[') { /* register indirect */
             start = ++i;
-            end   = i+2;
-            /* [r0|r1|r2|r3|sp|pc] */
-            if (j = is_keyword(&line[start], end-start)) {
+            while (line[i] != ',' && line[i] != ']' && line[i] != '\0') {
+                i++;
+            }
+
+            assert(line[i] == ',' || line[i] == ']');
+            end = i;
+
+            /* [r0|r1|r2|r3|r4|fp|sp|pc] */
+            if (j = is_keyword(&line[start], end-start)) { /* FIXME: is_reg() */
                 put_token(AM_REG_INDIRECT << 16 | TOKEN_KEYWORD, j);    /* high 16bit store the addr mode info */
+                if (line[i] == ',') {
+                    while (line[i] != '#' && line[i] != '\0') {
+                        i++;
+                    }
+                    assert(line[i] == '#');
+                    i++;
+                    start = i;
+                    if (line[i] == '0' && (line[i+1] == 'x' || line[i+1] == 'X')) { /* hex FIXME: i+1 i+2 may overstep the boundary */
+                        radix = 16;
+                        i = i + 2; /* skip '0' 'x' */
+                    } else { /* dec */
+                        radix = 10;
+                    }
+
+                    c = line[i++];
+                    while(is_digit(c)) {
+                        c = line[i++];
+                    }
+                    i = i - 1;
+                    end = i;
+                    DEBUG("%x [%c] \n", line[end], line[end]);
+                    assert(line[end] == ']');
+
+                    line[end] = '\0'; /* for atoi */
+                    num = _atoi(&line[start]);
+                    line[end] = ']'; /* for atoi */
+
+                    put_token(TOKEN_IMM, num);
+                } else {    /* we always put a imm */
+                    put_token(TOKEN_IMM, 0);
+                }
             } else {
                 error();
             }
-            i = i + 2;
+
+            printf("c: [%c] \n", line[i]);
             assert(line[i++] == ']');
         } else if (c == ',') {
             put_token(TOKEN_COMMA, 0);
@@ -473,6 +512,7 @@ s32 op_mov()
 s32 op_ldr()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+    u32 offset;
 
     op_type = LDR;
 
@@ -480,7 +520,9 @@ s32 op_ldr()
     dst    = get_operand(tindex+1);
 
     assert(tk_pool[tindex+2].type == TOKEN_COMMA);
+
     assert((tk_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
+    assert((tk_pool[tindex+4].type) == TOKEN_IMM);
 
     am_src1 = AM_REG_INDIRECT;
     src1    = get_operand(tindex+3);
@@ -488,14 +530,18 @@ s32 op_ldr()
     am_src2 = 0;
     src2    = 0;
 
+    offset = tk_pool[tindex+4].value;
+
     put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
-    tindex += 4;
+    put_word(offset);
+    tindex += 5;
     return 0;
 }
 
 s32 op_str()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+    u32 offset;
 
     op_type = LDR;
 
@@ -505,6 +551,7 @@ s32 op_str()
     assert(tk_pool[tindex+2].type == TOKEN_COMMA);
 
     assert((tk_pool[tindex+3].type >> 16) == AM_REG_INDIRECT);
+    assert((tk_pool[tindex+4].type) == TOKEN_IMM);
 
     am_dst  = AM_REG_INDIRECT;
     dst     = get_operand(tindex+3);
@@ -512,8 +559,12 @@ s32 op_str()
     am_src2 = 0;
     src2    = 0;
 
+    offset = tk_pool[tindex+4].value;
+
     put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
-    tindex += 4;
+    put_word(offset);
+
+    tindex += 5;
     return 0;
 }
 
@@ -560,19 +611,37 @@ s32 op_pop()
 s32 op_call()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
+    u32 imm;
 
     op_type = CALL;
 
     am_dst  = AM_REG_DIRECT;
     dst     = RINDEX(PC); /* PC */
 
-    am_src1 = AM_REG_DIRECT;
-    src1    = get_operand(tindex+1);
-
+    if (tk_pool[tindex+1].type == TOKEN_IMM) {
+        src1    = 0;
+        am_src1 = AM_IMM;
+        imm     = tk_pool[tindex+1].value;
+    } else if (tk_pool[tindex+1].type == TOKEN_KEYWORD) {
+        am_src1 = AM_REG_DIRECT;
+        src1    = get_operand(tindex+1);
+    }  else if (tk_pool[tindex+1].type == TOKEN_ID) {
+        src1    = 0;
+        am_src1 = AM_IMM;
+        imm     = id_pool[tk_pool[tindex+1].value].addr;
+        DEBUG("buf: 0x%x\n", id_pool[tk_pool[tindex+1].value].buf);
+        if (id_pool[tk_pool[tindex+1].value].addr == 0xFFFFFFFF) { /* need patch */
+            put_patch(cpu_addr+4, tk_pool[tindex+1].value);
+        }
+    }
     am_src2 = 0;
     src2    = 0;
 
     put_inst(op_type, am_dst, dst, am_src1, src1, am_src2, src2);
+    if (am_src1 == AM_IMM) {
+        put_word(imm);
+    }
+
     tindex += 2;
     return 0;
 }
@@ -598,7 +667,7 @@ s32 op_ret()
 }
 
 /* arithmetical logic  */
-s32 op_al(u32 type)
+s32 op_alu(u32 type)
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
     u32 imm;
@@ -748,7 +817,12 @@ s32 gen_code()
     u32 i;
     s32 op_type = -1;
     for(tindex=0;tindex<POOL_SIZE;) {
-        DEBUG(" %d type: %s; value: %d\n", tindex, type_desc[tk_pool[tindex].type], tk_pool[tindex].value);
+        DEBUG(" %d type: %s; value: %d ", tindex, type_desc[tk_pool[tindex].type], tk_pool[tindex].value);
+        if (tk_pool[tindex].type == TOKEN_KEYWORD) {
+            printf("[%s]\n", keyword[tk_pool[tindex].value]);
+        } else {
+            printf("[]\n");
+        }
 
         switch (tk_pool[tindex].type) {
             case (TOKEN_INVALID):
@@ -797,7 +871,7 @@ s32 gen_code()
                     case (KW_AND):
                     case (KW_OR):
                     case (KW_XOR):
-                        op_al(tk_pool[tindex].value);
+                        op_alu(tk_pool[tindex].value);
                         break;
 
                     case (KW_JMP):
@@ -843,7 +917,8 @@ s32 do_patch()
         _addr   = pt_pool[i].addr;
         _iindex = pt_pool[i].index;
         _patch  = id_pool[_iindex].addr;
-        assert(id_pool[_iindex].buf != NULL);
+        assert(id_pool[_iindex].buf  != NULL);
+        assert(id_pool[_iindex].addr != 0xFFFFFFFF);
         cpu_write_mem(_addr, _patch);
         DEBUG("patch [0x%x]:[0x%x]\n", _addr, _patch);
 
