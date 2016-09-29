@@ -81,6 +81,8 @@ enum SUB_TYPE_E {
     MOV   = OP_DATA_TRANSFER << 8 |  0,
     LDR   = OP_DATA_TRANSFER << 8 |  1,
     STR   = OP_DATA_TRANSFER << 8 |  2,
+    LDRB  = OP_DATA_TRANSFER << 8 |  3,
+    STRB  = OP_DATA_TRANSFER << 8 |  4,
 
     PUSH  = OP_STACK << 8 | 3,
     POP   = OP_STACK << 8 | 4,
@@ -95,6 +97,8 @@ enum SUB_TYPE_E {
     AND   = OP_ALU << 8 | 11,
     OR    = OP_ALU << 8 | 12,
     XOR   = OP_ALU << 8 | 13,
+    LOL   = OP_ALU << 8 | 14,
+    LOR   = OP_ALU << 8 | 15,
 
     JMP   = OP_JMP << 8 | 14,
     JMPN  = OP_JMP << 8 | 15,

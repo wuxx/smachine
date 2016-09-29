@@ -76,6 +76,10 @@ void op_ldr(struct __instruction__ *pinst)
             break;
     }
 
+    if (pinst->op_type == LDRB) {
+        R(pinst->dst) = R(pinst->dst) & 0x000000FF;
+    }
+
     PC = PC + 8;
 }
 
@@ -98,6 +102,10 @@ void op_str(struct __instruction__ *pinst)
     addr = R(pinst->dst);
     data = R(pinst->src1);
     offset = cpu_read_mem(PC + 4);
+
+    if (pinst->op_type == STRB) {
+        data = (cpu_read_mem(addr + offset) & 0xFFFFFF00) | (data & 0x000000FF);
+    }
 
     cpu_write_mem(addr + offset, data);
 
@@ -164,7 +172,7 @@ equal:
     push (PC + 4)
     mov pc, ri
 
-    call #imm   TODO
+    call #imm
 equal:
     push (PC + 8)
     mov pc #imm
@@ -247,6 +255,12 @@ format:
 
     xor ri, rj, rk
     xor ri, rj, #imm
+
+    lol ri, rj, rk
+    lol ri, rj, #imm
+
+    lor ri, rj, rk
+    lor ri, rj, #imm
 */
 void op_alu(struct __instruction__ *pinst)
 {
@@ -332,6 +346,20 @@ void op_alu(struct __instruction__ *pinst)
             break;
         case (XOR):
             R(pinst->dst)  = R(pinst->src1) ^ imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+            break;
+        case (LOL):
+            R(pinst->dst)  = R(pinst->src1) << imm;
+
+            if (R(pinst->dst) == 0x0) {
+                flag_z = 1;
+            }
+            break;
+        case (LOR):
+            R(pinst->dst)  = R(pinst->src1) >> imm;
 
             if (R(pinst->dst) == 0x0) {
                 flag_z = 1;
@@ -459,7 +487,9 @@ void op_halt(struct __instruction__ *pinst)
 
 struct __instruction_set__ is[] = {
     {"mov",   MOV,   op_mov},
+    {"ldrb",  LDRB,  op_ldr},
     {"ldr",   LDR,   op_ldr},
+    {"strb",  STRB,  op_str},
     {"str",   STR,   op_str},
 
     {"push",  PUSH,  op_push},
@@ -475,6 +505,8 @@ struct __instruction_set__ is[] = {
     {"and",   AND,   op_alu},
     {"or",    OR,    op_alu},
     {"xor",   XOR,   op_alu},
+    {"lol",   LOL,   op_alu},
+    {"lor",   LOR,   op_alu},
 
     {"jmp",   JMP,   op_jmp},
     {"jmpn",  JMPN,  op_jmp},

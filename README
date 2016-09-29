@@ -33,11 +33,11 @@ argx
 arg2
 arg1
 return address
+old fp         <- new fp
 local varx
 ...
 local var2
 local var1
-old fp         <- new fp
 ===========
 sub function can use r0, r1 freely, use r0 as return value.
 
