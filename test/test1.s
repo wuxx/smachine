@@ -8,36 +8,38 @@ main:
     mov fp, sp
     sub sp, sp, #12
     mov r0, #0x1008
-    ldr r0, [r0]
     push r0
     mov r0, #0x20
     pop r1
     str r0, [r1]
-    ldr r0, [fp, #-4]
-    ldr r0, [r0]
+    mov r0, #0x0
+    add r0, fp, #-4
     push r0
     mov r0, #0x64
     pop r1
     str r0, [r1]
-    ldr r0, [fp, #-8]
-    ldr r0, [r0]
+    mov r0, #0x0
+    add r0, fp, #-8
     push r0
     mov r0, #0xc8
     pop r1
     str r0, [r1]
-    ldr r0, [fp, #-12]
+    mov r0, #0x0
+    add r0, fp, #-12
+    push r0
+    mov r0, #0x0
+    add r0, fp, #-4
     ldr r0, [r0]
     push r0
-    ldr r0, [fp, #-4]
-    ldr r0, [r0]
-    push r0
-    ldr r0, [fp, #-8]
+    mov r0, #0x0
+    add r0, fp, #-8
     ldr r0, [r0]
     pop r1
     add r0, r0, r1
     pop r1
     str r0, [r1]
-    ldr r0, [fp, #-12]
+    mov r0, #0x0
+    add r0, fp, #-12
     ldr r0, [r0]
     mov sp, fp
     pop fp
@@ -49,7 +51,7 @@ _exit:
     halt
 
 LOCATE #0x1008
-DB #0x00
-DB #0x00
-DB #0x00
-DB #0x00
+	DB #0x00
+	DB #0x00
+	DB #0x00
+	DB #0x00

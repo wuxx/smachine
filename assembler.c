@@ -839,7 +839,7 @@ s32 op_data(u32 type)
             break;
         case (KW_DB):
             cpu_write_mem(cpu_addr, data);
-            cpu_addr += 1;
+            cpu_addr += 1;  /* FIXME */
             break;
 
     }

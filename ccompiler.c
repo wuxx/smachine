@@ -13,8 +13,9 @@
 #include <fcntl.h>
 
 #define ASM_EMIT(fmt, ...)     do {                     \
-    len = sprintf(&ee[eindex], fmt, ##__VA_ARGS__);     \
-    eindex += len;                                      \
+    len = sprintf(&ee[curr_eindex], "%d\t"fmt, __LINE__, ##__VA_ARGS__);     \
+    last_eindex  = curr_eindex;                         \
+    curr_eindex += len;                                 \
     if(strncmp(fmt, "ldrb", 4) == 0) {                  \
         lc = 1;                                         \
     } else {                                            \
@@ -30,7 +31,8 @@
 #define SM_DADDR(x)    (0x1000 | (x & 0x0FFF))
 
 char *ee;
-int eindex = 0;
+int last_eindex = 0;
+int curr_eindex = 0;
 int lc, li;
 int len;
 
@@ -177,7 +179,10 @@ void expr(int lev)
         }
         else if (d[Class] == Num) { ASM_EMIT("mov r0, #0x%x\n", d[Val]); ty = INT; }
         else {
-            if (d[Class] == Loc) { ASM_EMIT("ldr r0, [fp, #%d]\n", 4 * (loc - d[Val])); }
+            if (d[Class] == Loc) { 
+                ASM_EMIT("mov r0, #0x0\n"); 
+                ASM_EMIT("add r0, fp, #%d\n", 4 * (loc - d[Val])); 
+            }
             else if (d[Class] == Glo) { ASM_EMIT("mov r0, #0x%x\n", d[Val]); }
             else { printf("%d: undefined variable\n", line); exit(-1); }
             if ((ty = d[Type]) == CHAR) {
@@ -212,7 +217,7 @@ void expr(int lev)
     }
     else if (tk == And) {
         next(); expr(Inc);
-        if (lc == 1 || li == 1) eindex -= len; else { printf("%d: bad address-of\n", line); exit(-1); }
+        if (lc == 1 || li == 1) curr_eindex = last_eindex; else { printf("%d: bad address-of\n", line); exit(-1); }
         ty = ty + PTR;
     }
     else if (tk == '!') { 
@@ -253,10 +258,12 @@ void expr(int lev)
     else if (tk == Inc || tk == Dec) {
         t = tk; next(); expr(Inc);
         if (lc == 1) { 
+            curr_eindex = last_eindex;
             ASM_EMIT("push r0\n");
             ASM_EMIT("ldrb r0, [r0]\n");
         }
         else if (li == 1) { 
+            curr_eindex = last_eindex;
             ASM_EMIT("push r0\n");
             ASM_EMIT("ldr  r0, [r0]\n");
         }
@@ -287,7 +294,7 @@ void expr(int lev)
         t = ty;
         if (tk == Assign) {
             next();
-            if (lc == 1 || li == 1) ASM_EMIT("push r0\n"); else { printf("%d: bad lvalue in assignment\n", line); exit(-1); }
+            if (lc == 1 || li == 1) {curr_eindex = last_eindex; ASM_EMIT("push r0\n");} else { printf("%d: bad lvalue in assignment\n", line); exit(-1); }
             expr(Assign); 
             ASM_EMIT("pop r1\n");
             if (((ty = t) == CHAR)) {
@@ -529,10 +536,12 @@ void expr(int lev)
         }
         else if (tk == Inc || tk == Dec) {
             if (lc == 1) { 
+                curr_eindex = last_eindex;
                 ASM_EMIT("push r0\n");
                 ASM_EMIT("ldrb r0, [r0]\n");
             }
             else if (li == 1) { 
+                curr_eindex = last_eindex;
                 ASM_EMIT("push r0\n");
                 ASM_EMIT("ldr r0, [r0]\n");
             }
@@ -686,6 +695,9 @@ int main(int argc, char **argv)
     close(fd);
 
     ASM_EMIT("LOCATE #0x0\n");
+    ASM_EMIT("mov r0, #0x0\n");
+    ASM_EMIT("mov r1, #0x0\n");
+    ASM_EMIT("mov fp, #0x0\n");
     ASM_EMIT("mov sp, #0x4000\n");
     ASM_EMIT("_start:\n");
     ASM_EMIT("call main\n");
