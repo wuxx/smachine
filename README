@@ -15,7 +15,13 @@ vector table:
 0x4     Irq_Handler
 0x8     Exc_Handler
 
-the cpu have only 5 registers: r0 r1 r2(sp) r3(pc) flags
+memory map
+0x0000 - 0x0008 [int vector] 
+0x0008 - 0x1000 [text]
+0x1000 - 0x2000 [data]
+0x2000 - 0x4000 [stack]
+
+the cpu have 6 registers: r0 r1 r2 (fp) r3(sp) r4(pc) flags
 
 r0, r1 : general purpose registers
 r2(fp) : the frame pointer register
@@ -62,11 +68,12 @@ III. function call
     1. call r0
     2. ret
 
-IV. arithmetic operation 
+IV. arithmetic & logic operation 
     1. add r0,r0,r1     (r0=r0+r1)
     2. add r0,r0,#0x123456780 (r0=r0+0x12345678)
     3. div r0,r0,r1     (r0=r0/r1, r1=r0%r1)
     4. div r0,r0,#0x123456780 (r0=r0/0x12345678)
+    5. lol r0,r0,#1
     5.  sub mul and or xor are the same format
 
 V. jmp operation

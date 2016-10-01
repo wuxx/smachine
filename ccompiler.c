@@ -12,20 +12,22 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#define ASM_EMIT(fmt, ...)     do {                                             \
-    len = sprintf(&ee[eindex], fmt, ##__VA_ARGS__);   \
-    eindex += len;                              \
-    if(strncmp(fmt, "ldrb", 4) == 0) {          \
-        lc = 1;                                 \
-    } else {                                    \
-        lc = 0;                                 \
-    }                                           \
-    if(strncmp(fmt, "ldr", 3) == 0) {           \
-        li = 1;                                 \
-    } else {                                    \
-        li = 0;                                 \
-    }                                           \
+#define ASM_EMIT(fmt, ...)     do {                     \
+    len = sprintf(&ee[eindex], fmt, ##__VA_ARGS__);     \
+    eindex += len;                                      \
+    if(strncmp(fmt, "ldrb", 4) == 0) {                  \
+        lc = 1;                                         \
+    } else {                                            \
+        lc = 0;                                         \
+    }                                                   \
+    if(strncmp(fmt, "ldr", 3) == 0) {                   \
+        li = 1;                                         \
+    } else {                                            \
+        li = 0;                                         \
+    }                                                   \
 } while(0)
+
+#define SM_DADDR(x)    (0x1000 | (x & 0x0FFF))
 
 char *ee;
 int eindex = 0;
@@ -33,7 +35,7 @@ int lc, li;
 int len;
 
 char *p, *lp, // current position in source code
-     *data;   // data/bss pointer
+     *data, *data_start;   // data/bss pointer
 
 int *e, *le,  // current position in emitted code
     *id,      // currently parsed identifier
@@ -175,7 +177,7 @@ void expr(int lev)
         }
         else if (d[Class] == Num) { ASM_EMIT("mov r0, #0x%x\n", d[Val]); ty = INT; }
         else {
-            if (d[Class] == Loc) { ASM_EMIT("ldr r0, [fp, #%d]\n", loc - d[Val]); }
+            if (d[Class] == Loc) { ASM_EMIT("ldr r0, [fp, #%d]\n", 4 * (loc - d[Val])); }
             else if (d[Class] == Glo) { ASM_EMIT("mov r0, #0x%x\n", d[Val]); }
             else { printf("%d: undefined variable\n", line); exit(-1); }
             if ((ty = d[Type]) == CHAR) {
@@ -629,7 +631,8 @@ void stmt()
     else if (tk == Return) {
         next();
         if (tk != ';') expr(Assign);
-        ASM_EMIT("ldr fp, [fp]\n");
+        ASM_EMIT("mov sp, fp\n");
+        ASM_EMIT("pop fp\n");
         ASM_EMIT("ret\n");
         if (tk == ';') next(); else { printf("%d: semicolon expected\n", line); exit(-1); }
     }
@@ -669,6 +672,7 @@ int main(int argc, char **argv)
     memset(e,    0, poolsz);
     memset(data, 0, poolsz);
 
+    data_start = data;
     p = "char else enum if int return sizeof while "
         "open read close printf malloc memset memcmp exit void main";
     i = Char; while (i <= While) { next(); id[Tk] = i++; } // add keywords to symbol table
@@ -682,7 +686,7 @@ int main(int argc, char **argv)
     close(fd);
 
     ASM_EMIT("LOCATE #0x0\n");
-    ASM_EMIT("mov r0, #0x4000\n");
+    ASM_EMIT("mov sp, #0x4000\n");
     ASM_EMIT("_start:\n");
     ASM_EMIT("call main\n");
     ASM_EMIT("jmp _exit\n");
@@ -763,7 +767,7 @@ int main(int argc, char **argv)
 
                 ASM_EMIT("push fp\n");
                 ASM_EMIT("mov fp, sp\n");
-                ASM_EMIT("sub sp, sp, #0x%x\n", i - loc);
+                ASM_EMIT("sub sp, sp, #%d\n", 4 * (i - loc));
                 while (tk != '}') stmt();
                 ASM_EMIT("mov sp, fp\n");
                 ASM_EMIT("pop fp\n");
@@ -780,7 +784,7 @@ int main(int argc, char **argv)
             }
             else {
                 id[Class] = Glo;
-                id[Val] = (int)data;
+                id[Val] = SM_DADDR((int)data);
                 data = data + sizeof(int);
             }
             if (tk == ',') next();
@@ -794,8 +798,14 @@ int main(int argc, char **argv)
 
     ASM_EMIT("_exit:\n");
     ASM_EMIT("halt\n");
-    
-    for(i = 0; ee[i] != '\0'; i++) {
+
+    ASM_EMIT("\nLOCATE #0x%x\n", SM_DADDR((int)(data_start)));
+
+    for (i = 0; &data_start[i] != data; i++) {
+        ASM_EMIT("DB #0x%02x\n", data_start[i]);
+    }
+
+    for (i = 0; ee[i] != '\0'; i++) {
         printf("%c", ee[i]);
     }
 }

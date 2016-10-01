@@ -18,7 +18,7 @@
                                 } while(0)
 
 
-#define MEM_SIZE (10*1024)
+#define MEM_SIZE (0x4000)
 
 #define get_bit(x, bit_index) ((x >> bit_index) & 0x1)
 

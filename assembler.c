@@ -61,7 +61,9 @@ enum KEYWORD_E {
     KW_FP, /* ALIAS OF R2 */
     KW_SP, /* ALIAS OF R3 */
     KW_PC, /* ALIAS OF R4 */
-    KW_LOCATE, /* LOCATE THE MEM OF INSTRUCTION */
+    KW_LOCATE, /* LOCATE THE MEM OF INSTRUCTION & DATA */
+    KW_DW,
+    KW_DB,
 };
 
 char *keyword[] = { "NULL",
@@ -76,6 +78,8 @@ char *keyword[] = { "NULL",
                     "sp", /* alias of r3 */
                     "pc", /* alias of r4 */
                     "LOCATE",   /* locate the mem of instruction */
+                    "DW",
+                    "DB",
                     };
 
 u32 cpu_addr = 0;
@@ -232,8 +236,10 @@ s32 put_id(char *s, u32 len)
 s32 parse_line(char *line)
 {
     u32 i = 0, j;
-    u32 radix, num;
+    u32 radix;
+    s32 num;
     u32 start, end, len;
+    u32 neg = 0;
     char c;
     while((c = line[i]) != 0) {
         DEBUG("get [%c] \n", c);
@@ -260,6 +266,10 @@ s32 parse_line(char *line)
 
         } else if (c == '#') {      /* immediate num */
             i++;
+            if (line[i] == '-') {
+                neg = 1;
+                i++;
+            }
             start = i;
             if (line[i] == '0' && (line[i+1] == 'x' || line[i+1] == 'X')) { /* hex FIXME: i+1 i+2 may overstep the boundary */
                 radix = 16;
@@ -277,6 +287,9 @@ s32 parse_line(char *line)
             line[end] = '\0'; /* for atoi */
 
             num = _atoi(&line[start]);
+            if (neg) {
+                num = -num;
+            }
             put_token(TOKEN_IMM, num);
 
         } else if (c == '[') { /* register indirect */
@@ -812,6 +825,28 @@ s32 op_locate()
     tindex += 2;
 }
 
+s32 op_data(u32 type)
+{
+    u32 data;
+
+    assert(tk_pool[tindex+1].type == TOKEN_IMM);
+    data = tk_pool[tindex+1].value;
+
+    switch (type) {
+        case (KW_DW):
+            cpu_write_mem(cpu_addr, data);
+            cpu_addr += 4;
+            break;
+        case (KW_DB):
+            cpu_write_mem(cpu_addr, data);
+            cpu_addr += 1;
+            break;
+
+    }
+
+    tindex += 2;
+}
+
 s32 gen_code()
 {
     u32 i;
@@ -888,6 +923,10 @@ s32 gen_code()
                         break;
                     case (KW_LOCATE):
                         op_locate();
+                        break;
+                    case (KW_DW):
+                    case (KW_DB):
+                        op_data(tk_pool[tindex].value);
                         break;
                 }
         }
