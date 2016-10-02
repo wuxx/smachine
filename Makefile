@@ -18,10 +18,14 @@ $(SMAS):$(SMAS).c
 $(SMCC):$(SMCC).c
 	gcc $(CFLAGS) $(SMCC).c  -o $(SMCC)
 
-test:
+stest:
 	./$(SMAS) test/test.s   test/test.bin
 	./$(SMAS) test/sum.s    test/sum.bin
 	./$(SMAS) test/prime.s  test/prime.bin
+
+ctest:
+	./$(SMCC) test/ctest1.c > test/ctest1.s
+	./$(SMAS) test/ctest1.s test/ctest1.bin
 
 tags:
 	ctags -R .

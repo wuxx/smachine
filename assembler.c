@@ -36,7 +36,7 @@ char *type_desc[] = {
 
 struct __token__ {
     u32 type;
-    u32 value;
+    s32 value;
 };
 
 struct __id__ {
@@ -149,7 +149,8 @@ u32 _atoi(char *str)
 s32 is_letter(char c)
 {
     if (c >= 'a' && c <= 'z' ||
-        c >= 'A' && c <= 'Z') {
+        c >= 'A' && c <= 'Z' ||
+        c == '_' ) {
         return 1;
     } else {
         return 0;
@@ -199,7 +200,7 @@ s32 put_patch(u32 _addr, u32 _index)
     assert(pindex < POOL_SIZE);
 }
 
-s32 put_token(u32 _type, u32 _value)
+s32 put_token(u32 _type, s32 _value)
 {
     tk_pool[tindex].type  = _type;
     tk_pool[tindex].value = _value;
@@ -310,6 +311,10 @@ s32 parse_line(char *line)
                     }
                     assert(line[i] == '#');
                     i++;
+                    if (line[i] == '-') {
+                        neg = 1;
+                        i++;
+                    }
                     start = i;
                     if (line[i] == '0' && (line[i+1] == 'x' || line[i+1] == 'X')) { /* hex FIXME: i+1 i+2 may overstep the boundary */
                         radix = 16;
@@ -330,6 +335,10 @@ s32 parse_line(char *line)
                     line[end] = '\0'; /* for atoi */
                     num = _atoi(&line[start]);
                     line[end] = ']'; /* for atoi */
+
+                    if (neg) {
+                        num = -num;
+                    }
 
                     put_token(TOKEN_IMM, num);
                 } else {    /* we always put a imm */
@@ -490,7 +499,7 @@ u32 get_operand(u32 index)
 s32 op_mov()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
-    u32 imm = 0;
+    s32 imm = 0;
 
     op_type = MOV;
 
@@ -556,7 +565,7 @@ s32 op_str()
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
     u32 offset;
 
-    op_type = LDR;
+    op_type = STR;
 
     am_src1 = AM_REG_DIRECT;
     src1    = get_operand(tindex+1);
@@ -624,7 +633,7 @@ s32 op_pop()
 s32 op_call()
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
-    u32 imm;
+    s32 imm;
 
     op_type = CALL;
 
@@ -683,7 +692,7 @@ s32 op_ret()
 s32 op_alu(u32 type)
 {
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
-    u32 imm;
+    s32 imm;
 
     switch (type) {
         case (KW_ADD):
@@ -746,7 +755,7 @@ s32 op_alu(u32 type)
 
 s32 op_jmp(u32 type)
 {
-    u32 imm;
+    s32 imm;
     u32 op_type, am_dst, dst, am_src1, src1, am_src2, src2;
 
     switch (type) {

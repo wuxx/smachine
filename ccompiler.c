@@ -13,7 +13,7 @@
 #include <fcntl.h>
 
 #define ASM_EMIT(fmt, ...)     do {                     \
-    len = sprintf(&ee[curr_eindex], "%d\t"fmt, __LINE__, ##__VA_ARGS__);     \
+    len = sprintf(&ee[curr_eindex], fmt, ##__VA_ARGS__);     \
     last_eindex  = curr_eindex;                         \
     curr_eindex += len;                                 \
     if(strncmp(fmt, "ldrb", 4) == 0) {                  \
@@ -813,8 +813,8 @@ int main(int argc, char **argv)
 
     ASM_EMIT("\nLOCATE #0x%x\n", SM_DADDR((int)(data_start)));
 
-    for (i = 0; &data_start[i] != data; i++) {
-        ASM_EMIT("DB #0x%02x\n", data_start[i]);
+    for (i = 0; &data_start[i] <= data; i = i + 4) {
+        ASM_EMIT("DW #0x%08x\n", *(int *)&(data_start[i]));
     }
 
     for (i = 0; ee[i] != '\0'; i++) {
