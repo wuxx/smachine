@@ -23,9 +23,13 @@ stest:
 	./$(SMAS) test/sum.s    test/sum.bin
 	./$(SMAS) test/prime.s  test/prime.bin
 
-ctest:
+ctest1:
 	./$(SMCC) test/ctest1.c > test/ctest1.s
 	./$(SMAS) test/ctest1.s test/ctest1.bin
+
+ctest2:
+	./$(SMCC) test/ctest2.c > test/ctest2.s
+	 #./$(SMAS) test/ctest2.s test/ctest2.bin
 
 tags:
 	ctags -R .

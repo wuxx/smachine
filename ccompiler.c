@@ -172,7 +172,7 @@ void expr(int lev)
             while (tk != ')') { expr(Assign); ASM_EMIT("push r0\n"); ++t; if (tk == ',') next(); }
             next();
             if (d[Class] == Sys) *++e = d[Val];
-            else if (d[Class] == Fun) { ASM_EMIT("call #0x%x\n", d[Val]); }
+            else if (d[Class] == Fun) { ASM_EMIT("call _%.*s\n", d[Hash] & 0x3F, (char *)d[Name]); }
             else { printf("%d: bad function call\n", line); exit(-1); }
             if (t) { ASM_EMIT("mov sp, #0x%x\n", t); }
             ty = d[Type];
@@ -433,9 +433,9 @@ void expr(int lev)
             ASM_EMIT("jmpz L%d\n", label_index);
             ASM_EMIT("mov r0, #0\n");
             ASM_EMIT("jmp L%d\n", label_index + 1);
-            ASM_EMIT("L%d\n", label_index);
+            ASM_EMIT("L%d:\n", label_index);
             ASM_EMIT("mov r0, #1\n");
-            ASM_EMIT("L%d\n", label_index + 1);
+            ASM_EMIT("L%d:\n", label_index + 1);
             label_index += 2;
             ty = INT; 
         }
@@ -448,9 +448,9 @@ void expr(int lev)
             ASM_EMIT("jmpn L%d\n", label_index);
             ASM_EMIT("mov r0, #1\n");
             ASM_EMIT("jmp L%d\n", label_index + 1);
-            ASM_EMIT("L%d\n", label_index);
+            ASM_EMIT("L%d:\n", label_index);
             ASM_EMIT("mov r0, #0\n");
-            ASM_EMIT("L%d\n", label_index + 1);
+            ASM_EMIT("L%d:\n", label_index + 1);
             label_index += 2;
             ty = INT; 
         }
@@ -702,7 +702,6 @@ int main(int argc, char **argv)
     ASM_EMIT("_start:\n");
     ASM_EMIT("call main\n");
     ASM_EMIT("jmp _exit\n");
-    ASM_EMIT("main:\n");
 
     // parse declarations
     line = 1;
@@ -742,6 +741,11 @@ int main(int argc, char **argv)
             if (tk == '(') { // function
                 id[Class] = Fun;
                 id[Val] = (int)(e + 1);
+                if (id == idmain) {
+                    ASM_EMIT("main:\n");
+                } else {
+                    ASM_EMIT("_%.*s:\n", id[Hash] & 0x3F, (char *)id[Name]);
+                }
                 next(); i = 0;
                 while (tk != ')') {
                     ty = INT;
