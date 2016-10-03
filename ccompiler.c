@@ -5,6 +5,7 @@
 // just enough features to allow self-compilation and a bit more
 
 // Written by Robert Swierczek
+// Port to smachine by Wujianhua
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -809,8 +810,6 @@ int main(int argc, char **argv)
     }
 
     if (!(pc = (int *)idmain[Val])) { printf("main() not defined\n"); return -1; }
-
-
 
     ASM_EMIT("_exit:\n");
     ASM_EMIT("halt\n");
