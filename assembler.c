@@ -345,7 +345,7 @@ s32 parse_line(char *line)
                     put_token(TOKEN_IMM, 0);
                 }
             } else {
-                error();
+                error("bad keyword");
             }
 
             printf("c: [%c] \n", line[i]);
@@ -359,8 +359,7 @@ s32 parse_line(char *line)
         } else if (c == '\n') {
             return 0;
         } else {
-            printf("c: [%c] \n", c);
-            error();
+            error("bad input");
         }
     }
 }
@@ -1006,3 +1005,4 @@ int main(int argc, char **argv)
     printf("assemble [%s] ok\n", argv[1]);
     return 0;
 }
+

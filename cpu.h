@@ -12,6 +12,11 @@
 #define DEBUG(fmt, ...)
 #endif
 
+#define error(fmt, ...)  do { \
+                        printf("error in [%s][%d]:["fmt"], exit.\n", __func__, __LINE__, ##__VA_ARGS__);  \
+                        exit(-1); \
+                    } while(0)
+
 #define inst_illegal(pinst)  do { \
                                     printf("[%s][%d] illegal instruction [%x]\n", __func__, __LINE__, *((u32*)pinst));  \
                                     exit(-1); \

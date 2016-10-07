@@ -55,6 +55,18 @@ pop r1
 add r0, r0, r1
 pop r1
 str r0, [r1]
+mov r0, #0x0
+add r0, fp, #-4
+push r0
+mov r0, #0x0
+add r0, fp, #-4
+ldr r0, [r0]
+push r0
+mov r0, #0x1
+pop r1
+add r0, r0, r1
+pop r1
+str r0, [r1]
 jmp L0
 L1:
 mov r0, #0x0
@@ -76,7 +88,7 @@ push r0
 mov r0, #0x64
 push r0
 call _sum
-mov sp, #0x1
+add sp, sp, #0x4
 pop r1
 str r0, [r1]
 mov r0, #0x0

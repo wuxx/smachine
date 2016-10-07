@@ -8,6 +8,7 @@ int sum(int x)
 
     while (i <= x) {
         sum = sum + i;
+        i = i + 1;
     }
 
     return sum;

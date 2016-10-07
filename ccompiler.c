@@ -12,7 +12,7 @@
 #include <memory.h>
 #include <unistd.h>
 #include <fcntl.h>
-
+#if 1
 #define ASM_EMIT(fmt, ...)     do {                     \
     len = sprintf(&ee[curr_eindex], fmt, ##__VA_ARGS__);     \
     last_eindex  = curr_eindex;                         \
@@ -28,7 +28,25 @@
         li = 0;                                         \
     }                                                   \
 } while(0)
+#else
+#define ASM_EMIT(fmt, ...)     do {                     \
+    len = sprintf(&ee[curr_eindex], "%d\t"fmt, __LINE__, ##__VA_ARGS__);     \
+    last_eindex  = curr_eindex;                         \
+    curr_eindex += len;                                 \
+    if(strncmp(fmt, "ldrb", 4) == 0) {                  \
+        lc = 1;                                         \
+    } else {                                            \
+        lc = 0;                                         \
+    }                                                   \
+    if(strncmp(fmt, "ldr", 3) == 0) {                   \
+        li = 1;                                         \
+    } else {                                            \
+        li = 0;                                         \
+    }                                                   \
+} while(0)
+#endif
 
+/* relocate data to [0x1000, 0x2000] */
 #define SM_DADDR(x)    (0x1000 | (x & 0x0FFF))
 
 char *ee;
@@ -175,7 +193,7 @@ void expr(int lev)
             if (d[Class] == Sys) *++e = d[Val];
             else if (d[Class] == Fun) { ASM_EMIT("call _%.*s\n", d[Hash] & 0x3F, (char *)d[Name]); }
             else { printf("%d: bad function call\n", line); exit(-1); }
-            if (t) { ASM_EMIT("mov sp, #0x%x\n", t); }
+            if (t) { ASM_EMIT("add sp, sp, #0x%x\n", 4*t); }
             ty = d[Type];
         }
         else if (d[Class] == Num) { ASM_EMIT("mov r0, #0x%x\n", d[Val]); ty = INT; }

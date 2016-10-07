@@ -16,8 +16,8 @@ vector table:
 0x8     Exc_Handler
 
 memory map
-0x0000 - 0x0008 [int vector] 
-0x0008 - 0x1000 [text]
+0x0000 - 0x000C [int vector]
+0x000C - 0x1000 [text]
 0x1000 - 0x2000 [data]
 0x2000 - 0x4000 [stack]
 
@@ -62,7 +62,7 @@ I. data transfer operation & addressing mode
 
 II. stack operation
     1. push r0
-    2. pop r0
+    2. pop  r0
 
 III. function call
     1. call r0
@@ -74,7 +74,7 @@ IV. arithmetic & logic operation
     3. div r0,r0,r1     (r0=r0/r1, r1=r0%r1)
     4. div r0,r0,#0x123456780 (r0=r0/0x12345678)
     5. lol r0,r0,#1
-    5.  sub mul and or xor are the same format
+    6. sub mul and or xor are the same format
 
 V. jmp operation
     1. jmp
@@ -82,10 +82,18 @@ V. jmp operation
     3. jmpz jmpnz
     4. jmpo jmpno
 
+VI. power ctrl operation
+    1. halt
 
 #instruction format
-[31 30 | 29 28]  [27 26 | 25 24]  [23 22 | 21 20]  [19 18 17 16] [15 14 13 12 11 10 9 8] [7 6 5 4 3 2 1 0]
- am      op-dst   am      op-src1  am      op-src2  reserved      op-type                 sub-type
-         r0-r3            r0-r3            r0-r3                  I - V                   mov, ldr, str, push, pop, call, ret, add, div, sub, mul, and, or, xor, jmp[n][nzo]
+struct __instruction__ {
+    u32 dst:       3;   /* r0 - r4 */
+    u32 am_dst:    2;   /* address mode, include imm, register direct, register indirect */
+    u32 src1:      3;
+    u32 am_src1:   2;
+    u32 src2:      3;
+    u32 am_src2:   2;
+    u32 reserved:  1;
+    u32 op_type:  16;   /* op-type << 8 | sub-type (mov, ldr, str, push, pop, call, ret, add, div, sub, mul, and, or, xor, jmp[n][nzo]) */
+};
 
- am: addressing mode, include imm, register direct, register indirect.
