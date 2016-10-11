@@ -72,7 +72,7 @@ enum OP_TYPE_E {
     OP_FUNC_CALL     = 2,
     OP_ALU           = 3,
     OP_JMP           = 4,
-    OP_POWER_CTRL    = 5,
+    OP_SYS_CTRL      = 5,
 };
 
 enum VIC_TABLE_E {
@@ -113,7 +113,7 @@ enum SUB_TYPE_E {
     JMPNZ = OP_JMP << 8 | 19,
     JMPNO = OP_JMP << 8 | 20,
 
-    HALT  = OP_POWER_CTRL << 8 | 21,
+    HALT  = OP_SYS_CTRL << 8 | 21,
     
 };
 

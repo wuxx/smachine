@@ -7,7 +7,7 @@ while (1) {
     instruction fetch;
     instruction decode;
     instruction execute;
-    pc = pc + 4 (if not imm addressing, no call, jmp)
+    pc = pc + 4 (if no branch operation)
 }
 
 vector table:
@@ -82,7 +82,7 @@ V. jmp operation
     3. jmpz jmpnz
     4. jmpo jmpno
 
-VI. power ctrl operation
+VI. system ctrl operation
     1. halt
 
 #instruction format
