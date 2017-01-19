@@ -1,16 +1,21 @@
-SMSIM=simulator
+SMACHINE=smachine
 SMAS=assembler
 SMCC=ccompiler
 
-#CFLAGS = -m32 -g
+HOS = $(shell uname -m)
+
+ifeq ("x86_64", $(HOST))
+CFLAGS = -m32 -g
+else
 CFLAGS = -g
+endif
 
 .PHONY: all tags test
 
-all: $(SMSIM) $(SMAS) $(SMCC)
+all: $(SMACHINE) $(SMAS) $(SMCC)
 
-$(SMSIM):$(SMSIM).c
-	gcc $(CFLAGS) $(SMSIM).c -o $(SMSIM)
+$(SMACHINE):$(SMACHINE).c
+	gcc $(CFLAGS) $(SMACHINE).c -o $(SMACHINE)
 
 $(SMAS):$(SMAS).c
 	gcc $(CFLAGS) $(SMAS).c  -o $(SMAS)
@@ -26,6 +31,7 @@ stest:
 ctest1:
 	./$(SMCC) test/ctest1.c > test/ctest1.s
 	./$(SMAS) test/ctest1.s test/ctest1.bin
+	./$(SMACHINE) test/ctest1.bin || true
 
 ctest2:
 	./$(SMCC) test/ctest2.c > test/ctest2.s
@@ -35,4 +41,4 @@ tags:
 	ctags -R .
 
 clean:	
-	rm -f $(SMSIM) $(SMAS) $(SMCC) tags test/*.bin
+	rm -f $(SMACHINE) $(SMAS) $(SMCC) tags test/*.bin

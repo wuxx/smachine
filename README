@@ -21,13 +21,13 @@ memory map
 0x1000 - 0x2000 [data]
 0x2000 - 0x4000 [stack]
 
-the cpu have 6 registers: r0 r1 r2 (fp) r3(sp) r4(pc) flags
+the cpu have 6 registers: r0 r1 r2 (fp) r3(sp) r4(pc) flag
 
 r0, r1 : general purpose registers
 r2(fp) : the frame pointer register
 r3(sp) : the stack pointer register
 r4(pc) : the program counter register
-flags  : cpu status register include (negative zero overflow)
+flag   : cpu status register include (negative zero overflow)
 
 it's a arm-like cpu, base on load store architecture, 
 but I didn't design the lr register, function call is totally base on the stack

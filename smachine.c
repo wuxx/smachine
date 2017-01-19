@@ -589,13 +589,12 @@ void dump_regs()
     printf("[FLAG]: 0x%08x\n", FLAG);
 }
 
-/* simutor my cpu */
 int main(int argc, char **argv)
 {
     struct stat st;
 
     if (argc != 2) {
-        printf("%s [code.bin]\n", argv[0]);
+        printf("%s [system.bin]\n", argv[0]);
         exit(-1);
     }
 
@@ -610,7 +609,7 @@ int main(int argc, char **argv)
     }
 
     if ((st.st_size % 4) != 0) {
-        printf("%s size not multiple by 4 \n");
+        printf("%s size must align by 4\n");
         exit(-1);
     }
 
@@ -618,9 +617,7 @@ int main(int argc, char **argv)
 
     read(ifd, cpu_mem, MEM_SIZE);
 
-
     PC = RESET_HANDLER;
-    PC = 0x0;
     printf("smachine start\n");
     while (1) {
         cpu_run();

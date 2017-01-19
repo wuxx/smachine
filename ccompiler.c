@@ -5,14 +5,14 @@
 // just enough features to allow self-compilation and a bit more
 
 // Written by Robert Swierczek
-// Port to smachine by Wujianhua
+// Port to smachine by wuxx
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <unistd.h>
 #include <fcntl.h>
-#if 1
+
 #define ASM_EMIT(fmt, ...)     do {                     \
     len = sprintf(&ee[curr_eindex], fmt, ##__VA_ARGS__);     \
     last_eindex  = curr_eindex;                         \
@@ -28,23 +28,6 @@
         li = 0;                                         \
     }                                                   \
 } while(0)
-#else
-#define ASM_EMIT(fmt, ...)     do {                     \
-    len = sprintf(&ee[curr_eindex], "%d\t"fmt, __LINE__, ##__VA_ARGS__);     \
-    last_eindex  = curr_eindex;                         \
-    curr_eindex += len;                                 \
-    if(strncmp(fmt, "ldrb", 4) == 0) {                  \
-        lc = 1;                                         \
-    } else {                                            \
-        lc = 0;                                         \
-    }                                                   \
-    if(strncmp(fmt, "ldr", 3) == 0) {                   \
-        li = 1;                                         \
-    } else {                                            \
-        li = 0;                                         \
-    }                                                   \
-} while(0)
-#endif
 
 /* relocate data to [0x1000, 0x2000] */
 #define SM_DADDR(x)    (0x1000 | (x & 0x0FFF))

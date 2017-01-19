@@ -978,7 +978,7 @@ int main(int argc, char **argv)
 
     int ofd;
     if (argc != 3) {
-        printf("%s [foo.s] [bar.bin]\n", argv[0]);
+        printf("%s [sm.s] [sm.bin]\n", argv[0]);
         exit(-1);
     }
 
