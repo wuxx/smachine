@@ -2,9 +2,9 @@ SMACHINE=smachine
 SMAS=assembler
 SMCC=ccompiler
 
-HOS = $(shell uname -m)
+HOST = $(shell uname -m)
 
-ifeq ("x86_64", $(HOST))
+ifeq ("x86_64", "$(HOST)")
 CFLAGS = -m32 -g
 else
 CFLAGS = -g
